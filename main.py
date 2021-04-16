@@ -12,13 +12,11 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-import urllib
 import time
 from selenium import webdriver
 from selenium.webdriver.support.ui import *
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
-from datetime import datetime
 import pyperclip
 import chromedriver_autoinstaller
 from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException

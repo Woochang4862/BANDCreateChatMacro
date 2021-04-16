@@ -1,17 +1,15 @@
-import urllib
 import time
 from selenium import webdriver
 from selenium.webdriver.support.ui import *
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
-from datetime import datetime
 import pyperclip
 import chromedriver_autoinstaller
 from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
-chromedriver_autoinstaller.install()
+chromedriver_autoinstaller.install(cwd=True)
 co = Options()
 co.add_experimental_option('debuggerAddress', '127.0.0.1:9222')
 driver = webdriver.Chrome(options=co)

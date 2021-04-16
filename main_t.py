@@ -6,6 +6,10 @@ from CreateChatMacro import *
 
 form_class = uic.loadUiType("./create_chat_macro.ui")[0]
 
+open_chrome_with_debug_mode()
+
+setup_driver()
+
 class MyWindow(QMainWindow, form_class):
     def __init__(self):
         super().__init__()
