@@ -1,0 +1,81 @@
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+
+import time
+from selenium import webdriver
+from selenium.webdriver.support.ui import *
+from selenium.webdriver.common.keys import Keys
+import pyperclip
+from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+
+LOGGED_IN = "LOGGED_IN"
+LOGIN_SUCCESS = "LOGIN_SUCCESS"
+LOGIN_FAIL = "LOGIN_FAIL"
+LOGIN_ERROR = "LOGIN_ERROR"
+
+def login(driver, id, pw, onlyAction=False):
+    if not onlyAction:
+        driver.get('https://band.us/home')
+
+        if driver.current_url != 'https://band.us/home':
+            return LOGGED_IN
+    try:
+        login_btn = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="header"]/div/div/a[2]'))
+        )
+        login_btn.click()
+        naver_btn = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CLASS_NAME, 'uBtn.-icoType.-naver.externalLogin'))
+        )
+        naver_btn.click()
+
+        """
+        네이버 로그인
+        """
+        user_id = driver.find_element_by_id("id")
+        password = driver.find_element_by_id("pw")
+        time.sleep(1)
+
+        user_id.click()
+        pyperclip.copy(id)
+        user_id.send_keys(Keys.CONTROL, 'v')
+        time.sleep(1)
+
+        password.click()
+        pyperclip.copy(pw)
+        password.send_keys(Keys.CONTROL, 'v')
+        time.sleep(1)
+
+        password.submit()
+        
+        time.sleep(3)
+
+        if driver.current_url == 'https://band.us/':
+            return LOGIN_SUCCESS
+        return LOGIN_FAIL
+    except:
+        return LOGIN_ERROR
+
+class ValidateAccountThread(QThread):
+    state_logged_in = pyqtSignal()
+    state_login_success = pyqtSignal()
+    state_login_fail = pyqtSignal()
+    state_login_error = pyqtSignal()
+    def __init__(self, driver, id, pw, parent=None):
+        super().__init__()
+        self.driver = driver
+        self.id = id
+        self.pw = pw
+
+    def run(self):
+        result = login(driver, id, pw, onlyAction=False)
+        signal = {
+            LOGGED_IN:self.state_logged_in,
+            LOGIN_SUCCESS:self.state_login_success,
+            LOGIN_FAIL:self.state_login_fail,
+            LOGIN_ERROR:self.state_login_error
+        }.get(result)
+        signal.emit()

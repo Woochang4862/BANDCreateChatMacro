@@ -3,12 +3,12 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
 from CreateChatMacro import *
+from LoginMacro import *
+from DBHelper import *
 
 form_class = uic.loadUiType("./create_chat_macro.ui")[0]
 
-open_chrome_with_debug_mode()
-
-setup_driver()
+driver = setup_driver()
 
 class MyWindow(QMainWindow, form_class):
     def __init__(self):
@@ -25,6 +25,7 @@ class MyWindow(QMainWindow, form_class):
         self.validateAccountThread.state_logged_in.connect(self.state_logged_in)
         self.validateAccountThread.state_login_success.connect(self.state_login_success)
         self.validateAccountThread.state_login_fail.connect(self.state_login_fail)
+        self.validateAccountThread.state_login_error.connect(self.state_login_error)
         self.validateAccountThread.start()
 
     @pyqtSlot()
@@ -38,6 +39,10 @@ class MyWindow(QMainWindow, form_class):
     @pyqtSlot()
     def state_login_fail(self):
         QMessageBox.critical(self, '로그인 실패', '아이디 또는 비밀번호를 확인해 주세요', QMessageBox.Ok, QMessageBox.Ok)
+
+    @pyqtSlot()
+    def state_login_error(self):
+        pass
 
     def addAccount(self):
         pass
