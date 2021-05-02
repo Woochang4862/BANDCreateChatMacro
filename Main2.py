@@ -14,6 +14,7 @@ form_class = uic.loadUiType("./send_message_macro.ui")[0]
 class MyWindow(QMainWindow, form_class):
 
     numberOfCheckedBox = 0
+    checkBoxes = []
 
     def __init__(self):
         super().__init__()
@@ -55,17 +56,23 @@ class MyWindow(QMainWindow, form_class):
         self.tableWidget.setRowCount(len(chats))
         self.tableWidget.setHorizontalHeaderLabels(["", "밴드 이름", "채팅 이름", "채팅 주소"])
 
+        self.checkBoxes.clear()
+
         for idx, (band_title, chat_title, chat_url) in enumerate(chats): # 사용자정의 item 과 checkbox widget 을, 동일한 cell 에 넣어서 , 추후 정렬 가능하게 한다. 
             item = MyQTableWidgetItemCheckBox() 
             self.tableWidget.setItem(idx, 0, item) 
             chbox = MyCheckBox(item) 
             self.tableWidget.setCellWidget(idx, 0, chbox) 
             
+            self.checkBoxes.append(chbox)
+
             chbox.stateChanged.connect(self.__checkbox_change) # sender() 확인용 예.. 
             
             self.tableWidget.setItem(idx, 1, QTableWidgetItem(band_title)) 
             self.tableWidget.setItem(idx, 2, QTableWidgetItem(chat_title)) 
             self.tableWidget.setItem(idx, 3, QTableWidgetItem(chat_url)) 
+
+        logging.info(self.checkBoxes)
 
         self.tableWidget.setSortingEnabled(False)  # 정렬기능
         self.tableWidget.resizeRowsToContents()
@@ -103,6 +110,9 @@ class MyWindow(QMainWindow, form_class):
         :return:
         """
         # print("hedder2.. ", idx)
+        if idx == 0:
+            return
+
         self.tableWidget.setSortingEnabled(True)  # 정렬기능 on
         # time.sleep(0.2)
         self.tableWidget.setSortingEnabled(False)  # 정렬기능 off
@@ -111,17 +121,13 @@ class MyWindow(QMainWindow, form_class):
         #logging.info(idx)
         
         if idx == 0:
-            if self.numberOfCheckedBox > 0:
-                for row in range(self.tableWidget.rowCount()): 
-                    chbox = self.tableWidget.cellWidget(row, 0)
-                    if isinstance(chbox, MyCheckBox):
-                        chbox.setCheckState(2)
+            if self.numberOfCheckedBox == len(self.checkBoxes):
+                for chbox in self.checkBoxes: 
+                    chbox.setChecked(False)
 
             else:
-                for row in range(self.tableWidget.rowCount()): 
-                    chbox = self.tableWidget.cellWidget(row, 0)
-                    if isinstance(chbox, MyCheckBox):
-                        chbox.setCheckState(0)
+                for chbox in self.checkBoxes:
+                    chbox.setChecked(True)
 
 
 class MyCheckBox(QCheckBox):
@@ -154,7 +160,7 @@ class MyQTableWidgetItemCheckBox(QTableWidgetItem):
         self.setData(Qt.UserRole, 0) 
         
     def __lt__(self, other): 
-        logging.info(type(self.data(Qt.UserRole))) 
+        # logging.info(type(self.data(Qt.UserRole))) 
         return self.data(Qt.UserRole) < other.data(Qt.UserRole) 
         
     def my_setdata(self, value): 
