@@ -16,7 +16,7 @@ LOGIN_SUCCESS = "LOGIN_SUCCESS"
 LOGIN_FAIL = "LOGIN_FAIL"
 LOGIN_ERROR = "LOGIN_ERROR"
 
-def login(driver, id, pw, onlyAction=False):
+def loginWithNaver(driver, id, pw, onlyAction=False):
     if not onlyAction:
         driver.get('https://band.us/home')
 
@@ -57,6 +57,40 @@ def login(driver, id, pw, onlyAction=False):
             return LOGIN_SUCCESS
         return LOGIN_FAIL
     except:
+        return LOGIN_ERROR
+
+def loginWithPhone(driver, phone, pw, onlyAction=False):
+    if not onlyAction:
+        driver.get('https://auth.band.us/phone_login?keep_login=true')
+        
+        if driver.current_url != 'https://auth.band.us/phone_login?keep_login=true':
+            return LOGGED_IN
+    try:
+        """
+        휴대폰으로 로그인
+        """
+        input_phone = driver.find_element_by_id("input_local_phone_number")
+        input_phone.click()
+        pyperclip.copy(phone)
+        input_phone.send_keys(Keys.CONTROL, 'v')
+        submit_btn = driver.find_element_by_xpath('//*[@id="phone_login_form"]/button')
+        submit_btn.click()
+        time.sleep(1)
+
+        password = driver.find_element_by_id("pw")
+        password.click()
+        pyperclip.copy(pw)
+        password.send_keys(Keys.CONTROL, 'v')
+        password.submit()
+        time.sleep(1)
+        
+        time.sleep(3)
+
+        if driver.current_url == 'https://band.us/':
+            return LOGIN_SUCCESS
+        return LOGIN_FAIL
+    except Exception as e:
+        print(e)
         return LOGIN_ERROR
 
 class ValidateAccountThread(QThread):
