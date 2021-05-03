@@ -10,6 +10,8 @@ from LoginMacro import *
 from PyQt5.QtCore import *
 
 logger = logging.getLogger()
+FORMAT = "[%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
+logging.basicConfig(format=FORMAT)
 logger.setLevel(logging.INFO)
 
 def sendMessage(driver, url, text, onlyAction=False):
@@ -148,7 +150,8 @@ def getBandUrls(driver, onlyAction=False):
 
 class GetChatThread(QThread):
     
-    on_finished = pyqtSignal(list)
+    on_finished_get_chat = pyqtSignal(list)
+    on_error_get_chat = pyqtSignal()
 
     id = ''
     pw = ''
@@ -173,8 +176,10 @@ class GetChatThread(QThread):
                     chats.append((title, chat[0], chat[1]))
             logging.info(f'가져온 채팅 주소 개수 : "{len(chats)}"')
             logging.info(f'실행시간 : {time.time()-start}초')
+            self.on_finished_get_chat.emit(chats)
+        elif result == LOGIN_ERROR:
+            self.on_error_get_chat.emit()
         self.driver.close()
-        self.on_finished.emit(chats)
 
     def stop(self):
         self.driver.close()
@@ -183,8 +188,12 @@ class GetChatThread(QThread):
 
 class SendMessageThread(QThread):
 
+    id = ''
+    pw = ''
     chat_urls = []
     content = ''
+    on_finished_send_msg = pyqtSignal()
+    on_error_send_msg = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__()
@@ -195,9 +204,12 @@ class SendMessageThread(QThread):
         if result == LOGIN_SUCCESS or result == LOGGED_IN:
             start = time.time()
             logging.info('채팅 보내는 중...')
-            for chat_url in chat_urls:
-                sendMessage(self.driver, chat_url, time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+            for chat_url in self.chat_urls:
+                sendMessage(self.driver, chat_url, self.content)
             logging.info(f'실행시간 : {time.time()-start}초')
+            self.on_finished_send_msg.emit()
+        elif result == LOGIN_ERROR:
+            self.on_error_send_msg.emit()
         self.driver.close()
 
     def stop(self):

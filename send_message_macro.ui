@@ -140,10 +140,27 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>content_edit</sender>
+   <signal>textChanged()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_text_changed()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>579</x>
+     <y>437</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>664</x>
+     <y>425</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>find()</slot>
   <slot>run()</slot>
   <slot>stop()</slot>
+  <slot>on_text_changed()</slot>
  </slots>
 </ui>
