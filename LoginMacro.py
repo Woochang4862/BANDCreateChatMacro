@@ -11,6 +11,8 @@ from selenium.common.exceptions import NoSuchElementException, NoAlertPresentExc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
+from DriverProvider import *
+
 LOGGED_IN = "LOGGED_IN"
 LOGIN_SUCCESS = "LOGIN_SUCCESS"
 LOGIN_FAIL = "LOGIN_FAIL"
@@ -98,14 +100,16 @@ class ValidateAccountThread(QThread):
     state_login_success = pyqtSignal()
     state_login_fail = pyqtSignal()
     state_login_error = pyqtSignal()
-    def __init__(self, driver, id, pw, parent=None):
+
+    id = ''
+    pw = ''
+
+    def __init__(self, parent=None):
         super().__init__()
-        self.driver = driver
-        self.id = id
-        self.pw = pw
 
     def run(self):
-        result = login(driver, id, pw, onlyAction=False)
+        self.driver = setup_driver()
+        result = loginWithPhone(self.driver, self.id, self.pw, onlyAction=False)
         signal = {
             LOGGED_IN:self.state_logged_in,
             LOGIN_SUCCESS:self.state_login_success,
@@ -113,3 +117,9 @@ class ValidateAccountThread(QThread):
             LOGIN_ERROR:self.state_login_error
         }.get(result)
         signal.emit()
+        self.driver.close()
+
+    def stop(self):
+        self.driver.close()
+        self.quit()
+        self.wait(5000) #5000ms = 5s

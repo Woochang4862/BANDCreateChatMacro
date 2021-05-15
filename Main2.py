@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
 from SendMessageMacro import *
+from SMMDBHelper import *
 
 import logging
 
@@ -11,27 +12,104 @@ FORMAT = "[%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
 logging.basicConfig(format=FORMAT)
 logger.setLevel(logging.INFO)
 
-form_class = uic.loadUiType("./send_message_macro.ui")[0]
+form_class = uic.loadUiType("./ui/send_message_macro.ui")[0]
 
 class MyWindow(QMainWindow, form_class):
 
     numberOfCheckedBox = 0
     checkedRow = set()
     checkBoxes = []
+    accounts = []
+    chats = []
 
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
         self.getChatThread = GetChatThread(parent=self)
         self.getChatThread.on_finished_get_chat.connect(self.on_finished_get_chat)
         self.getChatThread.on_error_get_chat.connect(self.on_error_get_chat)
+
         self.sendMessageThread = SendMessageThread(parent=self)
         self.sendMessageThread.on_finished_send_msg.connect(self.on_finished_send_msg)
         self.sendMessageThread.on_error_send_msg.connect(self.on_error_send_msg)
+
+        self.validateAccountThread = ValidateAccountThread(parent=self)
+        self.validateAccountThread.state_logged_in.connect(self.state_logged_in)
+        self.validateAccountThread.state_login_success.connect(self.state_login_success)
+        self.validateAccountThread.state_login_fail.connect(self.state_login_fail)
+        self.validateAccountThread.state_login_error.connect(self.state_login_error)
+
         self.pdialog = QProgressDialog('시간이 걸릴 수 있습니다', '취소', 0, 0, self)
         self.pdialog.cancel()
         self.pdialog.setWindowTitle('채팅 정보 불러오는 중...')
         self.pdialog.canceled.connect(self.on_dialog_canceled)
+
+        self.loadAccounts()
+
+    def validate_account(self):
+        id = self.id_edit.text().strip()
+        pw = self.pw_edit.text().strip()
+
+        if id != '' and pw != '':
+            self.validateAccountThread.id = id
+            self.validateAccountThread.pw = pw
+            self.validateAccountThread.start()
+
+    @pyqtSlot()
+    def state_logged_in(self):
+        QMessageBox.warning(self.centralwidget, '로그인 상태', '로그아웃 후 다시 시도해 주세요', QMessageBox.Ok, QMessageBox.Ok)
+
+    @pyqtSlot()
+    def state_login_success(self):
+        QMessageBox.information(self.centralwidget, '로그인 성공', '아래 추가 버튼을 눌러 주세요', QMessageBox.Ok, QMessageBox.Ok)
+
+    @pyqtSlot()
+    def state_login_fail(self):
+        QMessageBox.critical(self, '로그인 실패', '아이디 또는 비밀번호를 확인해 주세요', QMessageBox.Ok, QMessageBox.Ok)
+
+    @pyqtSlot()
+    def state_login_error(self):
+        pass
+
+    def add_account(self):
+        id = self.id_edit.text().strip()
+        pw = self.pw_edit.text().strip()
+        self.accounts.append((id,pw))
+
+        self.bindToAccountTable()
+
+        self.id_edit.clear()
+        self.pw_edit.clear()
+
+    def save_account(self):
+        connect()
+        logging.info(self.accounts)
+        clearAccounts()
+        addAccounts(self.accounts)
+
+        self.accounts = getAccounts()
+
+        self.bindToAccountComboBox()
+        close()
+
+    def delete_account(self):
+        for _range in self.account_table.selectedRanges():
+            topRow = _range.topRow()
+            bottomRow = _range.bottomRow()
+
+            for row in range(topRow, bottomRow+1):
+                id = self.account_table.item(row, 0).text()
+                pw = self.account_table.item(row, 1).text()
+                self.accounts.remove((id,pw))
+
+        self.bindToAccountTable()
+
+    def save_chat(self):
+        pass
+
+    def delete_chat(self):
+        pass
 
     def run(self):
         chat_urls = []
@@ -54,7 +132,7 @@ class MyWindow(QMainWindow, form_class):
     def find(self):
         self.keyword = self.keyword_edit.text()
         if self.keyword != '':
-            self.loading()
+            self.loadChats()
 
     def on_dialog_canceled(self):
         if self.getChatThread.isRunning():
@@ -63,7 +141,42 @@ class MyWindow(QMainWindow, form_class):
     def on_text_changed(self):
         self.validateRunButton()
 
-    def loading(self):
+    def bindToAccountTable(self):
+        self.account_table.clear()
+        self.account_table.setColumnCount(2)
+        self.account_table.setRowCount(len(self.accounts))
+        self.account_table.setHorizontalHeaderLabels(["아이디", "비밀번호"])
+
+        for idx, (id, pw) in enumerate(self.accounts): # 사용자정의 item 과 checkbox widget 을, 동일한 cell 에 넣어서 , 추후 정렬 가능하게 한다. 
+
+            self.account_table.setItem(idx, 0, QTableWidgetItem(id)) 
+            self.account_table.setItem(idx, 1, QTableWidgetItem(pw)) 
+
+        self.account_table.setSortingEnabled(False)  # 정렬기능
+        self.account_table.resizeRowsToContents()
+        self.account_table.resizeColumnsToContents()  # 이것만으로는 checkbox 컬럼은 잘 조절안됨.
+
+        self.account_table.cellClicked.connect(self._cellclicked)
+
+        # 컬럼 헤더를 click 시에만 정렬하기.
+        hheader = self.account_table.horizontalHeader()  # qtablewidget --> qtableview --> horizontalHeader() --> QHeaderView
+        hheader.sectionClicked.connect(self._horizontal_header_clicked)
+
+    def bindToAccountComboBox(self):
+        self.account_combobox.clear()
+        self.account_combobox.addItem("계정")
+
+        for (id, pw) in self.accounts:
+            self.account_combobox.addItem(id)
+
+    def loadAccounts(self):
+        connect()
+        self.accounts = getAccounts()
+        close()
+        self.bindToAccountTable()
+        self.bindToAccountComboBox()
+
+    def loadChats(self):
         self.pdialog.show()
         self.getChatThread.id = '01038554671'
         self.getChatThread.pw = 'asdf0706'
@@ -85,15 +198,16 @@ class MyWindow(QMainWindow, form_class):
 
     @pyqtSlot(list)
     def on_finished_get_chat(self, chats):
+        self.chats = chats
         self.pdialog.cancel()
         self.tableWidget.clear()
         self.tableWidget.setColumnCount(4)
-        self.tableWidget.setRowCount(len(chats))
+        self.tableWidget.setRowCount(len(self.chats))
         self.tableWidget.setHorizontalHeaderLabels(["", "밴드 이름", "채팅 이름", "채팅 주소"])
 
         self.checkBoxes.clear()
 
-        for idx, (band_title, chat_title, chat_url) in enumerate(chats): # 사용자정의 item 과 checkbox widget 을, 동일한 cell 에 넣어서 , 추후 정렬 가능하게 한다. 
+        for idx, (band_title, chat_title, chat_url) in enumerate(self.chats): # 사용자정의 item 과 checkbox widget 을, 동일한 cell 에 넣어서 , 추후 정렬 가능하게 한다. 
             item = MyQTableWidgetItemCheckBox() 
             self.tableWidget.setItem(idx, 0, item) 
             chbox = MyCheckBox(item) 
@@ -168,9 +282,11 @@ class MyWindow(QMainWindow, form_class):
         :param idx -->  horizontalheader index; 0, 1, 2,...
         :return:
         """
-        # print("hedder2.. ", idx)
-        if idx == 0:
-            return
+        senderName = self.sender().objectName()
+        if senderName == 'tableWidget':
+            # print("hedder2.. ", idx)
+            if idx == 0:
+                return
 
         self.tableWidget.setSortingEnabled(True)  # 정렬기능 on
         # time.sleep(0.2)

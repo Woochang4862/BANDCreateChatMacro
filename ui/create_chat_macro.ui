@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>채팅방 생성 매크로</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="autoFillBackground">
@@ -33,9 +33,9 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
-      <widget class="QWidget" name="account_setting">
+      <widget class="QWidget" name="account_list_tab">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -54,6 +54,9 @@
                 <property name="text">
                  <string>아이디</string>
                 </property>
+                <property name="buddy">
+                 <cstring>edit_id</cstring>
+                </property>
                </widget>
               </item>
               <item row="1" column="0">
@@ -61,17 +64,20 @@
                 <property name="text">
                  <string>비밀번호</string>
                 </property>
+                <property name="buddy">
+                 <cstring>edit_pw</cstring>
+                </property>
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QLineEdit" name="id_edit">
+               <widget class="QLineEdit" name="edit_id">
                 <property name="placeholderText">
                  <string>아이디</string>
                 </property>
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QLineEdit" name="pw_edit">
+               <widget class="QLineEdit" name="edit_pw">
                 <property name="echoMode">
                  <enum>QLineEdit::Password</enum>
                 </property>
@@ -85,14 +91,20 @@
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_6">
               <item>
-               <widget class="QPushButton" name="validation_btn">
+               <widget class="QPushButton" name="btn_validation">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
                 <property name="text">
                  <string>확인</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="add_btn">
+               <widget class="QPushButton" name="btn_add_account">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
                 <property name="text">
                  <string>추가</string>
                 </property>
@@ -105,45 +117,10 @@
          </layout>
         </item>
         <item>
-         <widget class="QTreeWidget" name="account_list">
+         <widget class="QTableWidget" name="list_account">
           <property name="alternatingRowColors">
            <bool>true</bool>
           </property>
-          <property name="rootIsDecorated">
-           <bool>false</bool>
-          </property>
-          <property name="itemsExpandable">
-           <bool>true</bool>
-          </property>
-          <property name="sortingEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="wordWrap">
-           <bool>false</bool>
-          </property>
-          <property name="headerHidden">
-           <bool>false</bool>
-          </property>
-          <property name="expandsOnDoubleClick">
-           <bool>true</bool>
-          </property>
-          <property name="columnCount">
-           <number>3</number>
-          </property>
-          <attribute name="headerCascadingSectionResizes">
-           <bool>false</bool>
-          </attribute>
-          <attribute name="headerShowSortIndicator" stdset="0">
-           <bool>false</bool>
-          </attribute>
-          <attribute name="headerStretchLastSection">
-           <bool>false</bool>
-          </attribute>
-          <column>
-           <property name="text">
-            <string>계정명</string>
-           </property>
-          </column>
           <column>
            <property name="text">
             <string>아이디</string>
@@ -154,61 +131,11 @@
             <string>비밀번호</string>
            </property>
           </column>
-          <item>
-           <property name="text">
-            <string>정우창</string>
-           </property>
-           <property name="text">
-            <string>chad0706</string>
-           </property>
-           <property name="text">
-            <string>asdf0706</string>
-           </property>
-          </item>
          </widget>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <item>
-           <widget class="QPushButton" name="save_btn">
-            <property name="text">
-             <string>저장</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="export_btn">
-            <property name="text">
-             <string>내보내기</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="open_btn">
-            <property name="text">
-             <string>불러오기</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="remove_selected_btn">
-            <property name="text">
-             <string>선택삭제</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="remove_all_btn">
-            <property name="text">
-             <string>전체삭제</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="band_list">
+      <widget class="QWidget" name="band_list_tab">
        <attribute name="title">
         <string>밴드목록</string>
        </attribute>
@@ -218,19 +145,22 @@
           <item>
            <layout class="QFormLayout" name="formLayout_3">
             <item row="0" column="0">
-             <widget class="QLabel" name="label">
+             <widget class="QLabel" name="label_band_url">
               <property name="text">
                <string>밴드주소</string>
+              </property>
+              <property name="buddy">
+               <cstring>edit_band_url</cstring>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QLineEdit" name="lineEdit"/>
+             <widget class="QLineEdit" name="edit_band_url"/>
             </item>
            </layout>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton">
+           <widget class="QPushButton" name="add_band_url_btn">
             <property name="text">
              <string>추가</string>
             </property>
@@ -239,16 +169,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QTreeWidget" name="treeWidget">
-          <property name="rootIsDecorated">
-           <bool>false</bool>
-          </property>
-          <attribute name="headerMinimumSectionSize">
-           <number>32</number>
-          </attribute>
-          <attribute name="headerDefaultSectionSize">
-           <number>200</number>
-          </attribute>
+         <widget class="QTableWidget" name="list_band">
           <column>
            <property name="text">
             <string>밴드이름</string>
@@ -259,58 +180,11 @@
             <string>밴드주소</string>
            </property>
           </column>
-          <item>
-           <property name="text">
-            <string>초등교육 정보 | 밴드</string>
-           </property>
-           <property name="text">
-            <string>https://band.us/band/55170325</string>
-           </property>
-          </item>
          </widget>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
-          <item>
-           <widget class="QPushButton" name="pushButton_2">
-            <property name="text">
-             <string>저장</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_3">
-            <property name="text">
-             <string>PushButton</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_4">
-            <property name="text">
-             <string>PushButton</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_5">
-            <property name="text">
-             <string>PushButton</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_6">
-            <property name="text">
-             <string>PushButton</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="setting_list">
+      <widget class="QWidget" name="chat_setting_list_tab">
        <attribute name="title">
         <string>설정목록</string>
        </attribute>
@@ -320,48 +194,57 @@
           <item>
            <layout class="QFormLayout" name="formLayout_5">
             <item row="0" column="0">
-             <widget class="QLabel" name="label_2">
+             <widget class="QLabel" name="label_setting_name">
               <property name="text">
                <string>설정 이름</string>
               </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_3">
-              <property name="text">
-               <string>채팅방 이름</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_4">
-              <property name="text">
-               <string>채팅방 이미지</string>
+              <property name="buddy">
+               <cstring>edit_chat_setting_name</cstring>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QLineEdit" name="lineEdit_2"/>
+             <widget class="QLineEdit" name="edit_chat_setting_name"/>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_chat_name">
+              <property name="text">
+               <string>채팅방 이름</string>
+              </property>
+              <property name="buddy">
+               <cstring>edit_chat_name</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLineEdit" name="edit_chat_name"/>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_chat_image">
+              <property name="text">
+               <string>채팅방 이미지</string>
+              </property>
+              <property name="buddy">
+               <cstring>btn_chat_image</cstring>
+              </property>
+             </widget>
             </item>
             <item row="2" column="1">
-             <widget class="QPushButton" name="pushButton_7">
+             <widget class="QPushButton" name="btn_chat_image">
               <property name="text">
                <string>찾아보기</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
-             <widget class="QLineEdit" name="lineEdit_3"/>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_5">
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_message_preiod">
               <property name="text">
                <string>보관기간</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="1">
-             <widget class="QGroupBox" name="groupBox">
+            <item row="4" column="1">
+             <widget class="QGroupBox" name="group_message_preiod">
               <property name="title">
                <string>보관기간</string>
               </property>
@@ -375,7 +258,7 @@
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_8">
                  <item>
-                  <widget class="QRadioButton" name="radioButton_3">
+                  <widget class="QRadioButton" name="radio_min">
                    <property name="text">
                     <string>보관안함</string>
                    </property>
@@ -385,14 +268,14 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QRadioButton" name="radioButton_2">
+                  <widget class="QRadioButton" name="radio_thirty_days">
                    <property name="text">
                     <string>30일</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QRadioButton" name="radioButton">
+                  <widget class="QRadioButton" name="radio_one_year">
                    <property name="text">
                     <string>1년</string>
                    </property>
@@ -403,12 +286,52 @@
               </layout>
              </widget>
             </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_readers">
+              <property name="text">
+               <string>메시지 읽은 멤버 보기</string>
+              </property>
+              <property name="buddy">
+               <cstring>checkBox</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QCheckBox" name="checkBox">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
            </layout>
           </item>
          </layout>
         </item>
         <item>
-         <widget class="QTreeWidget" name="treeWidget_2">
+         <widget class="QPushButton" name="btn_add_chat_setting">
+          <property name="text">
+           <string>추가</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="list_chat_setting">
+          <attribute name="horizontalHeaderDefaultSectionSize">
+           <number>150</number>
+          </attribute>
+          <row>
+           <property name="text">
+            <string>1</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>2</string>
+           </property>
+          </row>
           <column>
            <property name="text">
             <string>설정 이름</string>
@@ -426,59 +349,120 @@
           </column>
           <column>
            <property name="text">
+            <string>메시지 읽은 멤버 보기</string>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>9</pointsize>
+            </font>
+           </property>
+          </column>
+          <column>
+           <property name="text">
             <string>보관기간</string>
            </property>
           </column>
-          <item>
-           <property name="text">
-            <string>테스트</string>
-           </property>
-           <property name="text">
-            <string>테스트</string>
-           </property>
-           <property name="text">
-            <string>C:\Users\wooch\OneDrive\바탕 화면\sample.jpg</string>
-           </property>
-           <property name="text">
-            <string>보관안함</string>
-           </property>
-          </item>
          </widget>
         </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="task_list_tab">
+       <attribute name="title">
+        <string>작업목록</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_6">
           <item>
-           <widget class="QPushButton" name="pushButton_8">
+           <layout class="QFormLayout" name="formLayout">
+            <item row="0" column="1">
+             <widget class="QLineEdit" name="edit_task_name"/>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_task_name">
+              <property name="text">
+               <string>작업이름</string>
+              </property>
+              <property name="buddy">
+               <cstring>edit_task_name</cstring>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_add_task">
             <property name="text">
-             <string>저장</string>
+             <string>추가</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="QListWidget" name="list_task_account">
+            <item>
+             <property name="text">
+              <string>chad0706</string>
+             </property>
+             <property name="checkState">
+              <enum>Unchecked</enum>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <widget class="QListWidget" name="list_task_band"/>
+          </item>
+          <item>
+           <widget class="QListWidget" name="list_task_setting"/>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="list_task">
+          <column>
+           <property name="text">
+            <string>작업이름</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>계정</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>밴드</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>설정</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>진행한 멤버수</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QPushButton" name="btn_start">
+            <property name="text">
+             <string>실행</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_9">
+           <widget class="QPushButton" name="btn_stop">
             <property name="text">
-             <string>내보내기</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_10">
-            <property name="text">
-             <string>불러오기</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_11">
-            <property name="text">
-             <string>선택삭제</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_12">
-            <property name="text">
-             <string>전체삭제</string>
+             <string>종료</string>
             </property>
            </widget>
           </item>
@@ -486,27 +470,257 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="task_list">
-       <attribute name="title">
-        <string>작업목록</string>
-       </attribute>
-      </widget>
      </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="layout_controll_panel">
+      <item>
+       <widget class="QPushButton" name="save_btn">
+        <property name="text">
+         <string>저장</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="export_btn">
+        <property name="text">
+         <string>내보내기</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="open_btn">
+        <property name="text">
+         <string>불러오기</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="remove_selected_btn">
+        <property name="text">
+         <string>선택삭제</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="remove_all_btn">
+        <property name="text">
+         <string>전체삭제</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>824</width>
-     <height>21</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>btn_validation</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>validateAccount()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>779</x>
+     <y>56</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>742</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_add_account</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>addAccount()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>796</x>
+     <y>80</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>821</x>
+     <y>77</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>add_band_url_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>addBandUrl()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>774</x>
+     <y>55</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>783</x>
+     <y>7</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_chat_image</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>openImagePicker()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>787</x>
+     <y>101</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>822</x>
+     <y>106</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_add_chat_setting</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>addChatSetting()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>734</x>
+     <y>194</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>824</x>
+     <y>185</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btn_add_task</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>addTask()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>782</x>
+     <y>52</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>822</x>
+     <y>43</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>edit_band_url</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>validateBandUrl()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>286</x>
+     <y>51</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>374</x>
+     <y>5</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>save_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>save()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>96</x>
+     <y>619</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>154</x>
+     <y>598</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>export_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>export()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>266</x>
+     <y>620</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>600</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>open_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>open()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>377</x>
+     <y>612</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>465</x>
+     <y>600</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>remove_selected_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>removeSelected()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>578</x>
+     <y>611</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>621</x>
+     <y>600</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>remove_all_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>removeAll()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>769</x>
+     <y>612</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>821</x>
+     <y>577</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>validateAccount()</slot>
+  <slot>addAccount()</slot>
+  <slot>addBandUrl()</slot>
+  <slot>openImagePicker()</slot>
+  <slot>addChatSetting()</slot>
+  <slot>addTask()</slot>
+  <slot>validateBandUrl()</slot>
+  <slot>save()</slot>
+  <slot>export()</slot>
+  <slot>open()</slot>
+  <slot>removeSelected()</slot>
+  <slot>removeAll()</slot>
+ </slots>
 </ui>
