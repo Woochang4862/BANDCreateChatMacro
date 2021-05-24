@@ -22,9 +22,13 @@ class MyWindow(QMainWindow, form_class):
     accounts_to_delete = []
     chats = []
 
+    state_validation_finished = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
+        self.add_btn.setEnabled(False)
 
         self.account_table.cellClicked.connect(self._cellclicked)
 
@@ -52,6 +56,7 @@ class MyWindow(QMainWindow, form_class):
         self.validateAccountThread.state_login_success.connect(self.state_login_success)
         self.validateAccountThread.state_login_fail.connect(self.state_login_fail)
         self.validateAccountThread.state_login_error.connect(self.state_login_error)
+        self.validateAccountThread.state_login_validation.connect(self.state_login_validation)
 
         self.pdialog = QProgressDialog('시간이 걸릴 수 있습니다', '취소', 0, 0, self)
         self.pdialog.cancel()
@@ -62,6 +67,15 @@ class MyWindow(QMainWindow, form_class):
         self.currentId = self.account_combobox.currentText()
 
         self.loadAccounts()
+
+    def state_login_validation(self):
+        msgBox = QMessageBox()
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setText("휴대폰 인증 후 아래 확인 버튼을 눌러 주세요")
+        msgBox.setWindowTitle("휴대폰 인증 요청")
+        msgBox.setStandardButtons(QMessageBox.Ok)
+        msgBox.buttonClicked.connect(lambda _ : self.state_validation_finished.emit())
+        msgBox.exec()
 
     def validate_account(self):
         id = self.id_edit.text().strip()
@@ -81,19 +95,23 @@ class MyWindow(QMainWindow, form_class):
 
     @pyqtSlot()
     def state_logged_in(self):
+        self.toggleAddButton(False)
         QMessageBox.warning(self.centralwidget, '로그인 상태', '로그아웃 후 다시 시도해 주세요', QMessageBox.Ok, QMessageBox.Ok)
 
     @pyqtSlot()
     def state_login_success(self):
+        self.toggleAddButton(True)
         QMessageBox.information(self.centralwidget, '로그인 성공', '아래 추가 버튼을 눌러 주세요', QMessageBox.Ok, QMessageBox.Ok)
 
     @pyqtSlot()
     def state_login_fail(self):
+        self.toggleAddButton(False)
         QMessageBox.critical(self, '로그인 실패', '아이디 또는 비밀번호를 확인해 주세요', QMessageBox.Ok, QMessageBox.Ok)
 
     @pyqtSlot()
     def state_login_error(self):
-        pass
+        self.toggleAddButton(False)
+        QMessageBox.critical(self, '로그인 오류', '로그인 시도 중 문제가 발생하였습니다', QMessageBox.Ok, QMessageBox.Ok)
 
     def add_account(self):
         id = self.id_edit.text().strip()
@@ -105,6 +123,8 @@ class MyWindow(QMainWindow, form_class):
 
         self.id_edit.clear()
         self.pw_edit.clear()
+
+        self.toggleAddButton(False)
 
     def save_account(self):
         connect()
@@ -158,8 +178,9 @@ class MyWindow(QMainWindow, form_class):
 
     def run(self):
         chat_urls = []
-        for r in list(self.checkedRow):
-            chat_urls.append(self.tableWidget.item(r, 3).text())
+        for i in range(self.tableWidget.rowCount()):
+            if self.tableWidget.cellWidget(i,0).isChecked():
+                chat_urls.append(self.tableWidget.item(i, 3).text())
         self.sendMessageThread.content = self.content_edit.toPlainText().strip()
         self.sendMessageThread.chat_urls = chat_urls
         connect()
@@ -188,6 +209,12 @@ class MyWindow(QMainWindow, form_class):
 
     def on_text_changed(self):
         self.validateRunButton()
+
+    def on_id_edit_changed(self,text):
+        self.toggleAddButton(False)
+
+    def on_pw_edit_changed(self,text):
+        self.toggleAddButton(False)
 
     def bindToAccountTable(self):
         self.account_table.clear()
@@ -294,6 +321,12 @@ class MyWindow(QMainWindow, form_class):
             self.toggleRunButton(False)
         else:
             self.toggleRunButton(True)
+
+    def toggleAddButton(self, enabled=None):
+        if enabled is None:
+            self.add_btn.setEnabled(not self.add_btn.isEnabled())
+        else:
+            self.add_btn.setEnabled(enabled)
 
     def toggleRunButton(self, enabled=None):
         if enabled is None:

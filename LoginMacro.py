@@ -3,6 +3,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 import time
+import logging
 from selenium import webdriver
 from selenium.webdriver.support.ui import *
 from selenium.webdriver.common.keys import Keys
@@ -13,10 +14,16 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from DriverProvider import *
 
+logger = logging.getLogger()
+FORMAT = "[%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
+logging.basicConfig(format=FORMAT)
+logger.setLevel(logging.INFO)
+
 LOGGED_IN = "LOGGED_IN"
 LOGIN_SUCCESS = "LOGIN_SUCCESS"
 LOGIN_FAIL = "LOGIN_FAIL"
 LOGIN_ERROR = "LOGIN_ERROR"
+LOGIN_VALIDATION = "LOGIN_VALIDATION"
 
 def loginWithNaver(driver, id, pw, onlyAction=False):
     if not onlyAction:
@@ -90,6 +97,8 @@ def loginWithPhone(driver, phone, pw, onlyAction=False):
 
         if driver.current_url == 'https://band.us/':
             return LOGIN_SUCCESS
+        elif driver.current_url == 'https://auth.band.us/b/validation/phone_number?next_url=https%3A%2F%2Fband.us':
+            return LOGIN_VALIDATION
         return LOGIN_FAIL
     except Exception as e:
         print(e)
@@ -100,23 +109,37 @@ class ValidateAccountThread(QThread):
     state_login_success = pyqtSignal()
     state_login_fail = pyqtSignal()
     state_login_error = pyqtSignal()
+    state_login_validation = pyqtSignal()
 
     id = ''
     pw = ''
 
     def __init__(self, parent=None):
         super().__init__()
+        parent.state_validation_finished.connect(self.state_validation_finished)
 
     def run(self):
         self.driver = setup_driver()
         result = loginWithPhone(self.driver, self.id, self.pw, onlyAction=False)
-        signal = {
-            LOGGED_IN:self.state_logged_in,
-            LOGIN_SUCCESS:self.state_login_success,
-            LOGIN_FAIL:self.state_login_fail,
-            LOGIN_ERROR:self.state_login_error
-        }.get(result)
-        signal.emit()
+        if result == LOGIN_VALIDATION:
+            self.state_login_validation.emit()
+        else:
+            signal = {
+                LOGGED_IN:self.state_logged_in,
+                LOGIN_SUCCESS:self.state_login_success,
+                LOGIN_FAIL:self.state_login_fail,
+                LOGIN_ERROR:self.state_login_error
+            }.get(result)
+            signal.emit()
+            self.driver.close()
+
+    def state_validation_finished(self):
+        logging.debug(self.driver.current_url)
+
+        if self.driver.current_url == 'https://band.us/':
+            self.state_login_success.emit()
+        else:
+            self.state_login_error.emit()
         self.driver.close()
 
     def stop(self):

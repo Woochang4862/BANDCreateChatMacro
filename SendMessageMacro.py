@@ -14,17 +14,21 @@ FORMAT = "[%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
 logging.basicConfig(format=FORMAT)
 logger.setLevel(logging.INFO)
 
+WAIT_SECONDS = 10
+
 def sendMessage(driver, url, text, onlyAction=False):
+    wait = WebDriverWait(driver, WAIT_SECONDS)
+
     if not onlyAction:
         driver.get(url)
 
     try:
-        textarea = WebDriverWait(driver, 10).until(
+        textarea = wait.until(
             EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div/section/div[2]/div[1]/textarea'))
         )
         textarea.send_keys(text)
 
-        send_btn = WebDriverWait(driver, 10).until(
+        send_btn = wait.until(
             EC.presence_of_element_located((By.XPATH, '//*[@id="wrap"]/section/div[2]/div[2]/button'))
         )
         send_btn.click()
@@ -34,6 +38,8 @@ def sendMessage(driver, url, text, onlyAction=False):
         print('Error: ', e)
 
 def getChatUrls(driver, url, keyword, onlyAction=False):
+    wait = WebDriverWait(driver, WAIT_SECONDS)
+
     if not onlyAction:
         driver.get(url)
 
@@ -55,11 +61,11 @@ def getChatUrls(driver, url, keyword, onlyAction=False):
             timeout = False
             while not done:
                 try:
-                    chat = WebDriverWait(driver, 10).until(
+                    chat = wait.until(
                         EC.element_to_be_clickable((By.XPATH, f'//ul[@class="chat"]/li[{i}]/a'))
                     )
                 
-                    chat_title = WebDriverWait(driver, 10).until(
+                    chat_title = wait.until(
                             EC.element_to_be_clickable((By.XPATH, f'//ul[@class="chat"]/li[{i}]/a/span[2]/strong'))
                     ).text
                     chat.click()
@@ -83,10 +89,10 @@ def getChatUrls(driver, url, keyword, onlyAction=False):
 
     elif len_of_chats == 1:
         try:
-            chat = WebDriverWait(driver, 10).until(
+            chat = wait.until(
                 EC.element_to_be_clickable((By.XPATH, f'//ul[@class="chat"]/li/a'))
             )
-            chat_title = WebDriverWait(driver, 10).until(
+            chat_title = wait.until(
                     EC.element_to_be_clickable((By.XPATH, f'//ul[@class="chat"]/li/a/span[2]/strong'))
             ).text
             chat.click()
@@ -102,6 +108,8 @@ def getChatUrls(driver, url, keyword, onlyAction=False):
     return result
 
 def getBandUrls(driver, onlyAction=False):
+    wait = WebDriverWait(driver, WAIT_SECONDS)
+    
     if not onlyAction:
         driver.get('https://band.us/')
 
@@ -110,7 +118,7 @@ def getBandUrls(driver, onlyAction=False):
     i = 1
     while True:
         try:
-            item = WebDriverWait(driver, 10).until(
+            item = wait.until(
                 EC.element_to_be_clickable((By.XPATH, f'//*[@id="content"]/div/section/div[2]/div/div/ul/li[{i}]'))
             )
         except:
@@ -179,12 +187,18 @@ class GetChatThread(QThread):
             self.on_finished_get_chat.emit(chats)
         elif result == LOGIN_ERROR:
             self.on_error_get_chat.emit()
-        self.driver.close() # TODO : 여기에서 취소 누르면 죽음
+        try:
+            self.driver.close()
+        except:
+            logging.info("작업이 취소됨")
 
     def stop(self):
-        self.driver.close()
-        self.quit()
-        self.wait(5000) #5000ms = 5s
+        try:
+            #self.wait(5000) #5000ms = 5s
+            self.quit()
+            self.driver.close()
+        except:
+            logging.error("드라이버 없음")
 
 class SendMessageThread(QThread):
 
@@ -210,9 +224,15 @@ class SendMessageThread(QThread):
             self.on_finished_send_msg.emit()
         elif result == LOGIN_ERROR:
             self.on_error_send_msg.emit()
-        self.driver.close()
+        try:
+            self.driver.close()
+        except:
+            logging.info("작업이 취소됨")
 
     def stop(self):
-        self.driver.close()
-        self.quit()
-        self.wait(5000) #5000ms = 5s
+        try:
+            #self.wait(5000) #5000ms = 5s
+            self.quit()
+            self.driver.close()
+        except:
+            logging.error("드라이버 없음")

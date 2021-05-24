@@ -301,8 +301,8 @@
    <slot>validate_account()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>288</x>
-     <y>48</y>
+     <x>317</x>
+     <y>83</y>
     </hint>
     <hint type="destinationlabel">
      <x>323</x>
@@ -317,8 +317,8 @@
    <slot>add_account()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>263</x>
-     <y>76</y>
+     <x>317</x>
+     <y>112</y>
     </hint>
     <hint type="destinationlabel">
      <x>270</x>
@@ -333,8 +333,8 @@
    <slot>save_account()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>129</x>
-     <y>304</y>
+     <x>151</x>
+     <y>335</y>
     </hint>
     <hint type="destinationlabel">
      <x>145</x>
@@ -349,8 +349,8 @@
    <slot>delete_account()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>287</x>
-     <y>304</y>
+     <x>318</x>
+     <y>335</y>
     </hint>
     <hint type="destinationlabel">
      <x>305</x>
@@ -365,8 +365,8 @@
    <slot>save_chat()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>419</x>
-     <y>302</y>
+     <x>493</x>
+     <y>335</y>
     </hint>
     <hint type="destinationlabel">
      <x>431</x>
@@ -381,12 +381,44 @@
    <slot>delete_chat()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>581</x>
-     <y>304</y>
+     <x>644</x>
+     <y>335</y>
     </hint>
     <hint type="destinationlabel">
      <x>588</x>
      <y>335</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>id_edit</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_id_edit_changed(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>114</x>
+     <y>72</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>108</x>
+     <y>-13</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pw_edit</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_pw_edit_changed(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>173</x>
+     <y>98</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>150</x>
+     <y>-8</y>
     </hint>
    </hints>
   </connection>
@@ -402,5 +434,7 @@
   <slot>save_chat()</slot>
   <slot>delete_account()</slot>
   <slot>delete_chat()</slot>
+  <slot>on_id_edit_changed(QString)</slot>
+  <slot>on_pw_edit_changed(QString)</slot>
  </slots>
 </ui>
