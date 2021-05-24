@@ -173,13 +173,13 @@ class GetChatThread(QThread):
             for title, url in bands:
                 _chats = getChatUrls(self.driver, url, self.keyword)
                 for chat in _chats:
-                    chats.append((title, chat[0], chat[1]))
+                    chats.append((title, chat[0], chat[1], self.id))
             logging.info(f'가져온 채팅 주소 개수 : "{len(chats)}"')
             logging.info(f'실행시간 : {time.time()-start}초')
             self.on_finished_get_chat.emit(chats)
         elif result == LOGIN_ERROR:
             self.on_error_get_chat.emit()
-        self.driver.close()
+        self.driver.close() # TODO : 여기에서 취소 누르면 죽음
 
     def stop(self):
         self.driver.close()

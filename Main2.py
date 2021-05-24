@@ -17,14 +17,27 @@ form_class = uic.loadUiType("./ui/send_message_macro.ui")[0]
 class MyWindow(QMainWindow, form_class):
 
     numberOfCheckedBox = 0
-    checkedRow = set()
-    checkBoxes = []
     accounts = []
+    accounts_to_add = []
+    accounts_to_delete = []
     chats = []
 
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+
+        self.account_table.cellClicked.connect(self._cellclicked)
+
+        # 컬럼 헤더를 click 시에만 정렬하기.
+        hheader = self.account_table.horizontalHeader()  # qtablewidget --> qtableview --> horizontalHeader() --> QHeaderView
+        hheader.sectionClicked.connect(self._horizontal_header_clicked)
+
+        self.tableWidget.cellClicked.connect(self._cellclicked)
+
+        # 컬럼 헤더를 click 시에만 정렬하기.
+        hheader = self.tableWidget.horizontalHeader()  # qtablewidget --> qtableview --> horizontalHeader() --> QHeaderView
+        hheader.sectionClicked.connect(self._horizontal_header_clicked)
+        hheader.sectionDoubleClicked.connect(self._horizontal_header_double_clicked)
 
         self.getChatThread = GetChatThread(parent=self)
         self.getChatThread.on_finished_get_chat.connect(self.on_finished_get_chat)
@@ -45,6 +58,9 @@ class MyWindow(QMainWindow, form_class):
         self.pdialog.setWindowTitle('채팅 정보 불러오는 중...')
         self.pdialog.canceled.connect(self.on_dialog_canceled)
 
+        self.account_combobox.activated[str].connect(self.onComboBoxActivated)
+        self.currentId = self.account_combobox.currentText()
+
         self.loadAccounts()
 
     def validate_account(self):
@@ -55,6 +71,13 @@ class MyWindow(QMainWindow, form_class):
             self.validateAccountThread.id = id
             self.validateAccountThread.pw = pw
             self.validateAccountThread.start()
+
+    def onComboBoxActivated(self, text):
+        self.currentId = text
+        connect()
+        self.chats = getChatsWithoutId(self.currentId)
+        close()
+        self.bindToChatTable()
 
     @pyqtSlot()
     def state_logged_in(self):
@@ -76,6 +99,7 @@ class MyWindow(QMainWindow, form_class):
         id = self.id_edit.text().strip()
         pw = self.pw_edit.text().strip()
         self.accounts.append((id,pw))
+        self.accounts_to_add.append((id,pw))
 
         self.bindToAccountTable()
 
@@ -85,8 +109,8 @@ class MyWindow(QMainWindow, form_class):
     def save_account(self):
         connect()
         logging.info(self.accounts)
-        clearAccounts()
-        addAccounts(self.accounts)
+        addAccounts(self.accounts_to_add)
+        deleteAccounts(self.accounts_to_delete)
 
         self.accounts = getAccounts()
 
@@ -102,14 +126,35 @@ class MyWindow(QMainWindow, form_class):
                 id = self.account_table.item(row, 0).text()
                 pw = self.account_table.item(row, 1).text()
                 self.accounts.remove((id,pw))
+                self.accounts_to_delete.append((id,pw))
 
         self.bindToAccountTable()
 
     def save_chat(self):
-        pass
+        connect()
+        logging.info(self.chats)
+        clearChats()
+        addChats(self.chats)
+        self.accounts = getChats()
+        close()
 
     def delete_chat(self):
-        pass
+        for _range in self.tableWidget.selectedRanges():
+            topRow = _range.topRow()
+            bottomRow = _range.bottomRow()
+
+            indexes = []
+            for row in range(topRow, bottomRow+1):
+                chat_url = self.tableWidget.item(row, 3).text()
+                logging.info(f"chat_url : {chat_url}")
+                for i, chat in enumerate(self.chats):
+                    if chat[2] == chat_url: 
+                        del self.chats[i]
+                        break
+                logging.info(f"chat_url : {self.chats}")
+                
+
+        self.bindToChatTable()
 
     def run(self):
         chat_urls = []
@@ -117,8 +162,11 @@ class MyWindow(QMainWindow, form_class):
             chat_urls.append(self.tableWidget.item(r, 3).text())
         self.sendMessageThread.content = self.content_edit.toPlainText().strip()
         self.sendMessageThread.chat_urls = chat_urls
-        self.sendMessageThread.id = '01038554671'
-        self.sendMessageThread.pw = 'asdf0706'
+        connect()
+        account = getAccountById(self.currentId)
+        close()
+        self.sendMessageThread.id = account[0]
+        self.sendMessageThread.pw = account[1]
         self.sendMessageThread.start()
         self.toggleRunButton(False)
         self.toggleStopButton(True)
@@ -156,18 +204,36 @@ class MyWindow(QMainWindow, form_class):
         self.account_table.resizeRowsToContents()
         self.account_table.resizeColumnsToContents()  # 이것만으로는 checkbox 컬럼은 잘 조절안됨.
 
-        self.account_table.cellClicked.connect(self._cellclicked)
-
-        # 컬럼 헤더를 click 시에만 정렬하기.
-        hheader = self.account_table.horizontalHeader()  # qtablewidget --> qtableview --> horizontalHeader() --> QHeaderView
-        hheader.sectionClicked.connect(self._horizontal_header_clicked)
-
     def bindToAccountComboBox(self):
         self.account_combobox.clear()
         self.account_combobox.addItem("계정")
 
         for (id, pw) in self.accounts:
             self.account_combobox.addItem(id)
+
+    def bindToChatTable(self):
+        self.tableWidget.clear()
+        self.tableWidget.setColumnCount(4)
+        self.tableWidget.setRowCount(len(self.chats))
+        self.tableWidget.setHorizontalHeaderLabels(["", "밴드 이름", "채팅 이름", "채팅 주소"])
+
+        for idx, (band_title, chat_title, chat_url, account_id) in enumerate(self.chats): # 사용자정의 item 과 checkbox widget 을, 동일한 cell 에 넣어서 , 추후 정렬 가능하게 한다. 
+            item = MyQTableWidgetItemCheckBox() 
+            self.tableWidget.setItem(idx, 0, item) 
+            chbox = MyCheckBox(item) 
+            self.tableWidget.setCellWidget(idx, 0, chbox) 
+
+            chbox.stateChanged.connect(self.__checkbox_change) # sender() 확인용 예.. 
+            
+            self.tableWidget.setItem(idx, 1, QTableWidgetItem(band_title)) 
+            self.tableWidget.setItem(idx, 2, QTableWidgetItem(chat_title)) 
+            self.tableWidget.setItem(idx, 3, QTableWidgetItem(chat_url)) 
+
+        self.tableWidget.setSortingEnabled(False)  # 정렬기능
+        self.tableWidget.resizeRowsToContents()
+        self.tableWidget.resizeColumnsToContents()  # 이것만으로는 checkbox 컬럼은 잘 조절안됨.
+        self.tableWidget.setColumnWidth(0, 15)  # checkbox 컬럼 폭 강제 조절.
+
 
     def loadAccounts(self):
         connect()
@@ -178,8 +244,12 @@ class MyWindow(QMainWindow, form_class):
 
     def loadChats(self):
         self.pdialog.show()
-        self.getChatThread.id = '01038554671'
-        self.getChatThread.pw = 'asdf0706'
+        connect()
+        account = getAccountById(self.currentId)
+        close()
+        logging.info(f"id : {account[0]}, pw : {account[1]}")
+        self.getChatThread.id = account[0]
+        self.getChatThread.pw = account[1]
         self.getChatThread.keyword = self.keyword
         self.getChatThread.start()
 
@@ -198,61 +268,26 @@ class MyWindow(QMainWindow, form_class):
 
     @pyqtSlot(list)
     def on_finished_get_chat(self, chats):
-        self.chats = chats
+        self.chats.extend(chats)
         self.pdialog.cancel()
-        self.tableWidget.clear()
-        self.tableWidget.setColumnCount(4)
-        self.tableWidget.setRowCount(len(self.chats))
-        self.tableWidget.setHorizontalHeaderLabels(["", "밴드 이름", "채팅 이름", "채팅 주소"])
-
-        self.checkBoxes.clear()
-
-        for idx, (band_title, chat_title, chat_url) in enumerate(self.chats): # 사용자정의 item 과 checkbox widget 을, 동일한 cell 에 넣어서 , 추후 정렬 가능하게 한다. 
-            item = MyQTableWidgetItemCheckBox() 
-            self.tableWidget.setItem(idx, 0, item) 
-            chbox = MyCheckBox(item) 
-            self.tableWidget.setCellWidget(idx, 0, chbox) 
-            
-            self.checkBoxes.append(chbox)
-
-            chbox.stateChanged.connect(self.__checkbox_change) # sender() 확인용 예.. 
-            
-            self.tableWidget.setItem(idx, 1, QTableWidgetItem(band_title)) 
-            self.tableWidget.setItem(idx, 2, QTableWidgetItem(chat_title)) 
-            self.tableWidget.setItem(idx, 3, QTableWidgetItem(chat_url)) 
-
-        logging.debug(f'"{len(self.checkBoxes)}"개의 체크상자 만들어짐')
-
-        self.tableWidget.setSortingEnabled(False)  # 정렬기능
-        self.tableWidget.resizeRowsToContents()
-        self.tableWidget.resizeColumnsToContents()  # 이것만으로는 checkbox 컬럼은 잘 조절안됨.
-        self.tableWidget.setColumnWidth(0, 15)  # checkbox 컬럼 폭 강제 조절.
-
-        self.tableWidget.cellClicked.connect(self._cellclicked)
-
-        # 컬럼 헤더를 click 시에만 정렬하기.
-        hheader = self.tableWidget.horizontalHeader()  # qtablewidget --> qtableview --> horizontalHeader() --> QHeaderView
-        hheader.sectionClicked.connect(self._horizontal_header_clicked)
-        hheader.sectionDoubleClicked.connect(self._horizontal_header_double_clicked)
+        
+        self.bindToChatTable()
         
     def __checkbox_change(self, checkvalue):
+        logging.info(checkvalue)
         # print("check change... ", checkvalue)
         chbox = self.sender()  # signal을 보낸 MyCheckBox instance
-        logging.debug(f"바뀐 행 : {chbox.get_row()}")
+        logging.info(f"현재 행 : {chbox.get_row()}")
 
         if checkvalue:
             self.numberOfCheckedBox += 1
-            self.checkedRow.add(chbox.get_row())
    
         else:
             self.numberOfCheckedBox -= 1
-            self.checkedRow.remove(chbox.get_row())
 
-        logging.debug(f"체크된 행 : {self.checkedRow}")
+        logging.info(f"체크된 상자 개수 : {self.numberOfCheckedBox}")
 
         self.validateRunButton()
-
-        logging.debug(f'체크된 상자 개수 : {self.numberOfCheckedBox}')
 
     def validateRunButton(self):
         if self.numberOfCheckedBox == 0 or self.content_edit.toPlainText().strip()=='':
@@ -295,16 +330,10 @@ class MyWindow(QMainWindow, form_class):
     def _horizontal_header_double_clicked(self, idx):
         #logging.debug(idx)
         
-        logging.debug(f'체크박스 개수 : {self.numberOfCheckedBox}, 체크된 행 : {self.checkedRow}')
         if idx == 0:
-            if self.numberOfCheckedBox == len(self.checkBoxes):
-                for chbox in self.checkBoxes: 
-                    chbox.setChecked(False)
-
-            else:
-                for chbox in self.checkBoxes:
-                    chbox.setChecked(True)
-
+            notAllChecked = self.numberOfCheckedBox != self.tableWidget.rowCount()
+            for i in range(self.tableWidget.rowCount()):
+                self.tableWidget.cellWidget(i,0).setChecked(notAllChecked)
 
 class MyCheckBox(QCheckBox):
     def __init__(self, item):
