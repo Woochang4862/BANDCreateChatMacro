@@ -1,7 +1,7 @@
 import time
 import logging
 from selenium.webdriver.support.ui import *
-from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException, TimeoutException, StaleElementReferenceException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from DriverProvider import *
@@ -15,6 +15,91 @@ logging.basicConfig(format=FORMAT)
 logger.setLevel(logging.INFO)
 
 WAIT_SECONDS = 10
+
+def sendMessage(driver, keywords, texts):
+    wait = WebDriverWait(driver, WAIT_SECONDS)
+
+    driver.get("https://band.us/")
+
+    showChannelsBtn = wait.until(
+        EC.element_to_be_clickable((By.XPATH, '//*[@id="btnShowChannels"]'))
+    )
+    showChannelsBtn.click()
+
+    i=0
+    chats = []
+    while True:
+        try:
+            chat = driver.find_element_by_xpath(f'//*[@id="header"]/div[2]/ul/li[4]/article/div/ul/li[last()-{i}]')
+            
+            chat_title = chat.find_elements_by_tag_name('span')[1].text.strip()
+
+            i+=1
+            chats.append((chat,chat_title))
+            logging.info(f"채팅요소 및 제목 : {len(chats)}")
+        except NoSuchElementException:
+            break
+        except Exception as e:
+            #logging.exception(e)
+            continue
+
+    i = 0
+    for chat, chat_title in chats:
+        for keyword, text in zip(keywords,texts):
+            logging.info(f'chat : {chat}, chat_title : {chat_title}')
+            if keyword in chat_title:
+                chat.click()
+                driver.switch_to.window(driver.window_handles[1])
+                err_cnt = 0
+                start = time.time()
+                while True:
+                    try:
+                        driver.find_element_by_xpath('//*[@id="wrap"]/div[1]/div[2]/div[2]/div')
+                        break
+                    except:
+                        err_cnt += 1
+                        #logging.info(f'리스트 부분 로딩 기다림 : {err_cnt}')
+                        if time.time()-start >= 10:
+                            driver.refresh()
+                        continue
+                
+                time.sleep(0.5)
+                
+                #logging.info(driver.page_source)
+                
+                done = False
+                while not done:
+                    try:    
+                        messages = driver.find_elements_by_class_name('txt._messageContent')
+                        
+                        isOverlaped = False
+                        for m in messages:
+                            logging.info(m.text.strip())
+                            if m.text.strip() == text:
+                                isOverlaped = True
+                                logging.info("조건에 맞지 않는 채팅방 : 메시지가 이미 존재함")
+                                break
+                                
+                        
+                        if not isOverlaped:
+                            logging.info("조건에 맞는 채팅방")
+                            i+=1
+                        break
+                    except Exception as e:
+                        logging.exception(e)
+                    
+                driver.close()
+                driver.switch_to.window(driver.window_handles[0])
+            else:
+                logging.info("조건에 맞지 않는 채팅방 : 키워드가 존재하지 않음")
+            if i==2:
+                return
+
+driver = setup_driver()
+result = loginWithPhone(driver, '01038554671', 'asdf0706')
+if result == LOGIN_SUCCESS or result == LOGGED_IN:
+    sendMessage(driver, ["공부","마카롱"], ["테스트","테스트"])
+    driver.close()
 
 def sendMessage(driver, url, text, onlyAction=False):
     wait = WebDriverWait(driver, WAIT_SECONDS)

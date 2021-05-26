@@ -7,11 +7,13 @@ TABLE_ACCOUNT = "account"
 ACCOUNT_ID = "account_id"
 ACCOUNT_PW = "pw"
 
+"""
 TABLE_CHAT = "chat"
 CHAT_ID = "_id"
 CHAT_BAND_NAME = "chat_band_name"
 CHAT_NAME = "chat_name"
 CHAT_URL = "chat_url"
+"""
 
 def connect():
     global con
@@ -23,10 +25,10 @@ def connect():
         con = sqlite3.connect(f"./{DB_NAME}")
         cursor = con.cursor()
         cursor.execute(f"CREATE TABLE {TABLE_ACCOUNT}({ACCOUNT_ID} text primary key, {ACCOUNT_PW} text)")
-        # foreign [이 테이블의 컬럼] references [참조할 테이블]([그 테이블의 칼럼명])
-        cursor.execute(f"CREATE TABLE {TABLE_CHAT}({CHAT_ID} integer primary key autoincrement, {CHAT_BAND_NAME} text, {CHAT_NAME} text, {CHAT_URL} text, {ACCOUNT_ID} text, foreign key({ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}) )")
+        ## foreign [이 테이블의 컬럼] references [참조할 테이블]([그 테이블의 칼럼명])
+        #cursor.execute(f"CREATE TABLE {TABLE_CHAT}({CHAT_ID} integer primary key autoincrement, {CHAT_BAND_NAME} text, {CHAT_NAME} text, {CHAT_URL} text, {ACCOUNT_ID} text, foreign key({ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}) )")
     
-    cursor.execute("PRAGMA foreign_keys=1")
+    #cursor.execute("PRAGMA foreign_keys=1")
 
 def close():
     con.close()
@@ -40,7 +42,7 @@ def addAccount(id, pw):
     con.commit()
 
 def deleteAccount(id):
-    cursor.execute(f"DELETE FROM {TABLE_CHAT} WHERE {ACCOUNT_ID}='{id}'")
+    #cursor.execute(f"DELETE FROM {TABLE_CHAT} WHERE {ACCOUNT_ID}='{id}'")
     cursor.execute(f"DELETE FROM {TABLE_ACCOUNT} WHERE {ACCOUNT_ID}='{id}'")
     con.commit()
 
@@ -90,7 +92,7 @@ def getAccountById(_id):
     row = cursor.fetchall()[0] # id로 찾았으므로 1개만 존재할 것임
     return row
 
-connect()
+#connect()
 #clearAccounts()
 #clearChats()
 #addAccount('01038554671', 'asdf0706')
@@ -98,4 +100,4 @@ connect()
 # addBand('테스트', '테스트', 'https://band.us/band/123456/chat/xyz')
 #print(getAccounts())
 #print(getChats())
-close()
+#close()
