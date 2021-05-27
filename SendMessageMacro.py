@@ -1,7 +1,7 @@
 import time
 import logging
 from selenium.webdriver.support.ui import *
-from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException, TimeoutException, StaleElementReferenceException
+from selenium.common.exceptions import NoSuchElementException, WebDriverException, TimeoutException, StaleElementReferenceException, InvalidSessionIdException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from DriverProvider import *
@@ -16,90 +16,148 @@ logger.setLevel(logging.INFO)
 
 WAIT_SECONDS = 10
 
-def sendMessage(driver, keywords, texts):
-    wait = WebDriverWait(driver, WAIT_SECONDS)
+class SendMessageThread(QThread):
+    id = ''
+    pw = ''
+    keywords = []
+    contents = []
 
-    driver.get("https://band.us/")
+    on_finished_send_msg = pyqtSignal(str)
+    on_error_send_msg = pyqtSignal(str, str)
+    on_logging_send_msg = pyqtSignal(int, str)
 
-    showChannelsBtn = wait.until(
-        EC.element_to_be_clickable((By.XPATH, '//*[@id="btnShowChannels"]'))
-    )
-    showChannelsBtn.click()
+    LOGGING_INFO = 0
+    LOGGING_WARNING = 1
+    LOGGING_ERROR = 2
 
-    i=0
-    chats = []
-    while True:
+    def __init__(self, parent=None):
+        super().__init__()
+
+    def run(self):
+        self.driver = setup_driver()
+        self.on_logging_send_msg.emit(self.LOGGING_INFO, "로그인 시도 중...")
+        result = loginWithPhone(self.driver, self.id,self.pw)
+        if result == LOGIN_SUCCESS or result == LOGGED_IN:
+            self.on_logging_send_msg.emit(self.LOGGING_INFO, "로그인 완료")
+            start = time.time()
+            self.on_logging_send_msg.emit(self.LOGGING_INFO, '조건에 맞는 채팅방이 있으면 메시지를 보내게 됩니다...')
+            self.discoverChatsAndSendMessage(self.driver, self.keywords, self.contents)
+            self.on_logging_send_msg.emit(self.LOGGING_INFO, f'실행시간 : {time.time()-start}초')
+            self.on_finished_send_msg.emit(self.id)
+        elif result == LOGIN_ERROR:
+            self.on_error_send_msg.emit(self.id, "로그인 실패")
         try:
-            chat = driver.find_element_by_xpath(f'//*[@id="header"]/div[2]/ul/li[4]/article/div/ul/li[last()-{i}]')
-            
-            chat_title = chat.find_elements_by_tag_name('span')[1].text.strip()
+            self.driver.close()
+        except:
+            self.on_logging_send_msg.emit(self.LOGGING_INFO, "작업이 취소됨")
 
-            i+=1
-            chats.append((chat,chat_title))
-            logging.info(f"채팅요소 및 제목 : {len(chats)}")
-        except NoSuchElementException:
-            break
-        except Exception as e:
-            #logging.exception(e)
-            continue
+    def stop(self):
+        try:
+            #self.wait(5000) #5000ms = 5s
+            self.quit()
+            self.driver.close()
+        except:
+            self.on_logging_send_msg.emit(self.LOGGING_WARNING, "제거할 드라이버 없음")
 
-    i = 0
-    for chat, chat_title in chats:
-        for keyword, text in zip(keywords,texts):
-            logging.info(f'chat : {chat}, chat_title : {chat_title}')
-            if keyword in chat_title:
-                chat.click()
-                driver.switch_to.window(driver.window_handles[1])
-                err_cnt = 0
-                start = time.time()
-                while True:
-                    try:
-                        driver.find_element_by_xpath('//*[@id="wrap"]/div[1]/div[2]/div[2]/div')
-                        break
-                    except:
-                        err_cnt += 1
-                        #logging.info(f'리스트 부분 로딩 기다림 : {err_cnt}')
-                        if time.time()-start >= 10:
-                            driver.refresh()
-                        continue
+    def discoverChatsAndSendMessage(self, driver, keywords, texts):
+        wait = WebDriverWait(driver, WAIT_SECONDS)
+
+        driver.get("https://band.us/")
+
+        showChannelsBtn = wait.until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@id="btnShowChannels"]'))
+        )
+        showChannelsBtn.click()
+
+        i=0
+        chats = []
+        while self.isRunning():
+            try:
+                chat = driver.find_element_by_xpath(f'//*[@id="header"]/div[2]/ul/li[4]/article/div/ul/li[last()-{i}]')
                 
-                time.sleep(0.5)
-                
-                #logging.info(driver.page_source)
-                
-                done = False
-                while not done:
-                    try:    
-                        messages = driver.find_elements_by_class_name('txt._messageContent')
-                        
-                        isOverlaped = False
-                        for m in messages:
-                            logging.info(m.text.strip())
-                            if m.text.strip() == text:
-                                isOverlaped = True
-                                logging.info("조건에 맞지 않는 채팅방 : 메시지가 이미 존재함")
-                                break
-                                
-                        
-                        if not isOverlaped:
-                            logging.info("조건에 맞는 채팅방")
-                            i+=1
-                        break
-                    except Exception as e:
-                        logging.exception(e)
-                    
-                driver.close()
-                driver.switch_to.window(driver.window_handles[0])
-            else:
-                logging.info("조건에 맞지 않는 채팅방 : 키워드가 존재하지 않음")
-            if i==2:
+                chat_title = chat.find_elements_by_tag_name('span')[1].text.strip()
+
+                i+=1
+                chats.append((chat,chat_title))
+                logging.info(f"채팅요소 및 제목 : {len(chats)}")
+            except NoSuchElementException:
+                break
+            except InvalidSessionIdException:
                 return
+            except Exception as e:
+                logging.exception(e)
+                continue
+        self.on_logging_send_msg.emit(self.LOGGING_INFO,f"검사 예정 채팅 목록 수 : {len(chats)}개")
+        logging.info(f"{keywords}, {texts}")
+        correctChats = []
+        for chat, chat_title in chats:
+            for keyword, text in zip(keywords,texts):
+                #logging.info(f'chat : {chat}, chat_title : {chat_title}')
+                if keyword in chat_title:
+                    chat.click()
+                    driver.switch_to.window(driver.window_handles[1])
+                    err_cnt = 0
+                    start = time.time()
+                    while self.isRunning():
+                        try:
+                            driver.find_element_by_xpath('//*[@id="wrap"]/div[1]/div[2]/div[2]/div')
+                            break
+                        except:
+                            #logging.exception("")
+                            err_cnt += 1
+                            #logging.info(f'리스트 부분 로딩 기다림 : {err_cnt}')
+                            if time.time()-start >= 10:
+                                driver.refresh()
+                            continue
+                    
+                    time.sleep(0.5)
+                    
+                    #logging.info(driver.page_source)
+                    
+                    done = False
+                    while not done:
+                        try:    
+                            messages = driver.find_elements_by_class_name('txt._messageContent')
+                            
+                            isOverlaped = False
+                            for m in messages:
+                                #logging.info(m.text.strip())
+                                if m.text.strip() == text:
+                                    isOverlaped = True
+                                    self.on_logging_send_msg.emit(self.LOGGING_WARNING, f"'{chat_title}' 조건에 맞지 않는 채팅방 (메시지가 이미 존재함)")
+                                    break
+                                    
+                            if not isOverlaped:
+                                self.on_logging_send_msg.emit(self.LOGGING_INFO, f"'{chat_title}' 조건에 맞는 채팅방")
+                                self.on_logging_send_msg.emit(self.LOGGING_INFO, f"'{chat_title}'에 채팅 보내는 중...")
+                                sendMessage(driver, None, text, True)
+                                self.on_logging_send_msg.emit(self.LOGGING_INFO, f"'{chat_title}'에 채팅 보내기 완료!")
+                                correctChats.append(chat_title)
+                            break
+                        except Exception as e:
+                            logging.exception(e)
+                        
+                    driver.close()
+                    driver.switch_to.window(driver.window_handles[0])
+                else:
+                    self.on_logging_send_msg.emit(self.LOGGING_WARNING, f"'{chat_title}' 조건에 맞지 않는 채팅방 (키워드가 존재하지 않음)")
+                if len(correctChats)==2:
+                    temp = "'"+"', '".join(correctChats)+"'"
+                    self.on_logging_send_msg.emit(self.LOGGING_INFO, f"{temp} 조건에 맞는 채팅방을 두 개 찾아 종료됨")
+                    return
+                
+        if len(correctChats)==1:
+            temp = "'"+"', '".join(correctChats)+"'"
+            self.on_logging_send_msg.emit(self.LOGGING_INFO, f"{temp} 조건에 맞는 채팅방 한 개에 대해서 작업을 수행함")
+            return
+        self.on_logging_send_msg.emit(self.LOGGING_ERROR, "조건에 맞는 채팅방이 없음")
 
-driver = setup_driver()
-result = loginWithPhone(driver, '01038554671', 'asdf0706')
-if result == LOGIN_SUCCESS or result == LOGGED_IN:
-    sendMessage(driver, ["공부","마카롱"], ["테스트","테스트"])
-    driver.close()
+
+# driver = setup_driver()
+# result = loginWithPhone(driver, '01038554671', 'asdf0706')
+# if result == LOGIN_SUCCESS or result == LOGGED_IN:
+#     sendMessage(driver, ["공부","마카롱"], ["테스트","테스트"])
+#     driver.close()
 
 def sendMessage(driver, url, text, onlyAction=False):
     wait = WebDriverWait(driver, WAIT_SECONDS)
@@ -285,39 +343,39 @@ class GetChatThread(QThread):
         except:
             logging.error("드라이버 없음")
 
-class SendMessageThread(QThread):
+# class SendMessageThread(QThread):
 
-    id = ''
-    pw = ''
-    chat_urls = []
-    content = ''
-    on_finished_send_msg = pyqtSignal()
-    on_error_send_msg = pyqtSignal()
+#     id = ''
+#     pw = ''
+#     chat_urls = []
+#     content = ''
+#     on_finished_send_msg = pyqtSignal()
+#     on_error_send_msg = pyqtSignal()
 
-    def __init__(self, parent=None):
-        super().__init__()
+#     def __init__(self, parent=None):
+#         super().__init__()
 
-    def run(self):
-        self.driver = setup_driver()
-        result = loginWithPhone(self.driver, self.id,self.pw)
-        if result == LOGIN_SUCCESS or result == LOGGED_IN:
-            start = time.time()
-            logging.info('채팅 보내는 중...')
-            for chat_url in self.chat_urls:
-                sendMessage(self.driver, chat_url, self.content)
-            logging.info(f'실행시간 : {time.time()-start}초')
-            self.on_finished_send_msg.emit()
-        elif result == LOGIN_ERROR:
-            self.on_error_send_msg.emit()
-        try:
-            self.driver.close()
-        except:
-            logging.info("작업이 취소됨")
+#     def run(self):
+#         self.driver = setup_driver()
+#         result = loginWithPhone(self.driver, self.id,self.pw)
+#         if result == LOGIN_SUCCESS or result == LOGGED_IN:
+#             start = time.time()
+#             logging.info('채팅 보내는 중...')
+#             for chat_url in self.chat_urls:
+#                 sendMessage(self.driver, chat_url, self.content)
+#             logging.info(f'실행시간 : {time.time()-start}초')
+#             self.on_finished_send_msg.emit()
+#         elif result == LOGIN_ERROR:
+#             self.on_error_send_msg.emit()
+#         try:
+#             self.driver.close()
+#         except:
+#             logging.info("작업이 취소됨")
 
-    def stop(self):
-        try:
-            #self.wait(5000) #5000ms = 5s
-            self.quit()
-            self.driver.close()
-        except:
-            logging.error("드라이버 없음")
+#     def stop(self):
+#         try:
+#             #self.wait(5000) #5000ms = 5s
+#             self.quit()
+#             self.driver.close()
+#         except:
+#             logging.error("드라이버 없음")

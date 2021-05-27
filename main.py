@@ -12,7 +12,7 @@ from collections import deque
 logger = logging.getLogger()
 FORMAT = "[%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
 logging.basicConfig(format=FORMAT)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 form_class = uic.loadUiType("./ui/send_message_macro_v2.ui")[0]
 
@@ -61,6 +61,11 @@ class MyWindow(QMainWindow, form_class):
         self.validateAccountThread.state_login_fail.connect(self.state_login_fail)
         self.validateAccountThread.state_login_error.connect(self.state_login_error)
         self.validateAccountThread.state_login_validation.connect(self.state_login_validation)
+
+        self.sendMessageThread = SendMessageThread(parent=self)
+        self.sendMessageThread.on_finished_send_msg.connect(self.on_finished_send_msg)
+        self.sendMessageThread.on_error_send_msg.connect(self.on_error_send_msg)
+        self.sendMessageThread.on_logging_send_msg.connect(self.on_logging_send_msg)
         """
         ::END::
         """
@@ -227,14 +232,41 @@ class MyWindow(QMainWindow, form_class):
         self.validateRunButton()
 
     """
-    실행 중단 설정
+    실행/중단 설정
     ::START::
     """
     def on_run_clicked(self):
         logging.debug("실행")
 
+        self.progressBar.reset()
+
+        self.toggleRunButton(False)
+        self.toggleStopButton(True)
+
+        self.remain_accounts = deque(self.accounts)
+        keywords = list(map(lambda x: x.strip(), self.keyword_edit.text().strip().split(',')))
+        contents = list(map(lambda x: x.strip(' \n'), self.content_edit.toPlainText().strip(' \n').split(',')))
+
+        _keywords = "'"+"', '".join(keywords)+"'"
+        _contents = "'"+"', '".join(contents)+"'"
+        self.loggingInfo("채팅 보내기", f"키워드 : {_keywords}, 내용 : {_contents}")
+
+        while self.remain_accounts:
+            id,pw = self.remain_accounts.popleft()
+            self.sendMessageThread.id = id
+            self.sendMessageThread.pw = pw
+            self.sendMessageThread.keywords = keywords
+            self.sendMessageThread.contents = contents
+            self.sendMessageThread.start()
+        
+
+
     def on_stop_clicked(self):
         logging.debug("중단")
+        if self.sendMessageThread.isRunning():
+            self.sendMessageThread.stop()
+        self.toggleStopButton(False)
+        self.toggleRunButton(True)
 
     def validateRunButton(self):
         if len(self.accounts) == 0 or self.content_edit.toPlainText().strip()=='' or self.keyword_edit.text().strip()=='':
@@ -247,6 +279,28 @@ class MyWindow(QMainWindow, form_class):
             self.run_btn.setEnabled(not self.run_btn.isEnabled())
         else:
             self.run_btn.setEnabled(enabled)
+
+    def toggleStopButton(self, enabled=None):
+        if enabled is None:
+            self.stop_btn.setEnabled(not self.stop_btn.isEnabled())
+        else:
+            self.stop_btn.setEnabled(enabled)
+
+    def on_finished_send_msg(self, id):
+        self.loggingInfo("채팅 보내기", f"{id}가 완료됨")
+        self.progressBar.setValue((1-len(self.remain_accounts)/len(self.accounts))*100)
+        self.toggleStopButton(False)
+        self.validateRunButton()
+        
+    def on_error_send_msg(self, id, msg):
+        self.loggingError("채팅 보내기", f"{id}에서 {msg}")
+
+    def on_logging_send_msg(self, _type, msg):
+        {
+            0:self.loggingInfo,
+            1:self.loggingWarning,
+            2:self.loggingError
+        }.get(_type)("채팅 보내기", msg)
     """
     :::END::
     """
@@ -256,14 +310,14 @@ class MyWindow(QMainWindow, form_class):
     ::START::
     """
     def loggingInfo(self, action, msg):
-        currentTime = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+        currentTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         self.log_view.append(f"[{currentTime}] {action} - <b>{msg}</b>")
 
     def loggingError(self, action, msg):
-        currentTime = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+        currentTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         self.log_view.append(f'<p style="color: red"><b>[{currentTime}] {action} - <i>{msg}</i></b></p>') 
     def loggingWarning(self, action, msg):
-        currentTime = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+        currentTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         self.log_view.append(f'<p style="color: grey">[{currentTime}] {action} - <b>{msg}</b></p>') 
     """
     ::END::

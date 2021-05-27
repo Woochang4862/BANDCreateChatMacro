@@ -92,12 +92,12 @@ def getAccountById(_id):
     row = cursor.fetchall()[0] # id로 찾았으므로 1개만 존재할 것임
     return row
 
-#connect()
+connect()
 #clearAccounts()
 #clearChats()
 #addAccount('01038554671', 'asdf0706')
 #addChat('a', 'a', 'xyz.com', '01038554671')
 # addBand('테스트', '테스트', 'https://band.us/band/123456/chat/xyz')
-#print(getAccounts())
+print(getAccountById('01038554671'))
 #print(getChats())
-#close()
+close()
