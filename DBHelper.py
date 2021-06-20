@@ -20,18 +20,11 @@ CHAT_SETTING_CHAT_IMAGE = "chat_image"
 CHAT_SETTING_READERS_VIEW = "readers_view"
 CHAT_SETTING_MESSAGE_PERIOD = "message_period"
 
-TABLE_TASK = "task"
-TASK_ID = "_id"
-TASK_NAME = "name"
-TASK_ACCOUNT_ID = "account_id"
-TASK_BAND_ID = "band_id"
-TASK_CHAT_SETTING_ID = "chat_setting_id"
-TASK_REMAININGS = "remainings"
-
-TABLE_MEMBERS = "members"
-MEMBERS_ID = "_id"
-MEMBERS_BAND_ID = "band_id"
-MEMBERS_CHAT_ID = "chat_id"
+TABLE_MEMBER = "member"
+MEMBER_ID = "_id"
+MEMBER_ACCOUNT_ID = "account_id"
+MEMBER_BAND_ID = "band_id"
+MEMBER_CHAT_ID = "chat_id"
 
 def connect():
     global con
@@ -42,11 +35,11 @@ def connect():
     else:
         con = sqlite3.connect(f"./{DB_NAME}")
         cursor = con.cursor()
-        cursor.execute(f"CREATE TABLE {TABLE_ACCOUNT}({ACCOUNT_ID} text primary key, {ACCOUNT_PW} text)")
-        cursor.execute(f"CREATE TABLE {TABLE_BAND}({BAND_ID} integer primary key autoincrement, {BAND_NAME} text, {BAND_URL} text)")
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_ACCOUNT}({ACCOUNT_ID} text primary key, {ACCOUNT_PW} text)")
+        cursor.execute(f"CREATE TABLE {TABLE_BAND}({BAND_ID} integer primary key, {BAND_NAME} text, {BAND_URL} text)")
         cursor.execute(f"CREATE TABLE {TABLE_CHAT_SETTING}({CHAT_SETTING_ID} integer primary key autoincrement, {CHAT_SETTING_NAME} text, {CHAT_SETTING_CHAT_NAME} text, {CHAT_SETTING_CHAT_IMAGE} text, {CHAT_SETTING_READERS_VIEW} integer default 1, {CHAT_SETTING_MESSAGE_PERIOD} text)")
-        cursor.execute(f"CREATE TABLE {TABLE_TASK}({TASK_ID} integer primary key autoincrement, {TASK_NAME} text, {TASK_ACCOUNT_ID} integer, {TASK_BAND_ID} integer, {TASK_CHAT_SETTING_ID} integer, {TASK_REMAININGS} integer default 0)")
-        cursor.execute(f"CREATE TABLE {TABLE_MEMBERS}({MEMBERS_ID} integer primary key, {MEMBERS_BAND_ID} integer, {MEMBERS_CHAT_ID} integer)")
+        cursor.execute(f"CREATE TABLE {TABLE_MEMBER}({MEMBER_ID} integer primary key, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} integer, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}) references {TABLE_BAND}({BAND_ID}))")
+    cursor.execute("PRAGMA foreign_keys=1")
 
 def close():
     con.close()
