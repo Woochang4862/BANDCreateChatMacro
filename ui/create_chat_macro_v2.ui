@@ -55,7 +55,7 @@
                  <string>이메일</string>
                 </property>
                 <property name="buddy">
-                 <cstring>edit_id</cstring>
+                 <cstring>id_edit</cstring>
                 </property>
                </widget>
               </item>
@@ -65,19 +65,19 @@
                  <string>비밀번호</string>
                 </property>
                 <property name="buddy">
-                 <cstring>edit_pw</cstring>
+                 <cstring>pw_edit</cstring>
                 </property>
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QLineEdit" name="edit_id">
+               <widget class="QLineEdit" name="id_edit">
                 <property name="placeholderText">
                  <string>아이디</string>
                 </property>
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QLineEdit" name="edit_pw">
+               <widget class="QLineEdit" name="pw_edit">
                 <property name="echoMode">
                  <enum>QLineEdit::Password</enum>
                 </property>
@@ -91,7 +91,7 @@
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_6">
               <item>
-               <widget class="QPushButton" name="btn_validation">
+               <widget class="QPushButton" name="validate_btn">
                 <property name="enabled">
                  <bool>true</bool>
                 </property>
@@ -101,9 +101,9 @@
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="btn_add_account">
+               <widget class="QPushButton" name="add_btn">
                 <property name="enabled">
-                 <bool>true</bool>
+                 <bool>false</bool>
                 </property>
                 <property name="text">
                  <string>추가</string>
@@ -117,7 +117,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QTableWidget" name="list_account">
+         <widget class="QTableWidget" name="account_table">
           <property name="alternatingRowColors">
            <bool>true</bool>
           </property>
@@ -131,6 +131,13 @@
             <string>비밀번호</string>
            </property>
           </column>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="account_delete_btn">
+          <property name="text">
+           <string>삭제</string>
+          </property>
          </widget>
         </item>
        </layout>
@@ -150,12 +157,16 @@
                <string>설정 이름</string>
               </property>
               <property name="buddy">
-               <cstring>edit_chat_setting_name</cstring>
+               <cstring>chat_setting_name_edit</cstring>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QLineEdit" name="edit_chat_setting_name"/>
+             <widget class="QLineEdit" name="chat_setting_name_edit">
+              <property name="placeholderText">
+               <string>설정 이름</string>
+              </property>
+             </widget>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="label_chat_name">
@@ -163,12 +174,16 @@
                <string>채팅방 이름</string>
               </property>
               <property name="buddy">
-               <cstring>edit_chat_name</cstring>
+               <cstring>chat_name_edit</cstring>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QLineEdit" name="edit_chat_name"/>
+             <widget class="QLineEdit" name="chat_name_edit">
+              <property name="placeholderText">
+               <string>채팅방 이름</string>
+              </property>
+             </widget>
             </item>
             <item row="2" column="0">
              <widget class="QLabel" name="label_chat_image">
@@ -176,12 +191,12 @@
                <string>채팅방 이미지</string>
               </property>
               <property name="buddy">
-               <cstring>btn_chat_image</cstring>
+               <cstring>chat_image_btn</cstring>
               </property>
              </widget>
             </item>
             <item row="2" column="1">
-             <widget class="QPushButton" name="btn_chat_image">
+             <widget class="QPushButton" name="chat_image_btn">
               <property name="text">
                <string>찾아보기</string>
               </property>
@@ -219,14 +234,14 @@
                   </widget>
                  </item>
                  <item>
-                  <widget class="QRadioButton" name="radio_thirty_days">
+                  <widget class="QRadioButton" name="radio_month">
                    <property name="text">
                     <string>30일</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QRadioButton" name="radio_one_year">
+                  <widget class="QRadioButton" name="radio_year">
                    <property name="text">
                     <string>1년</string>
                    </property>
@@ -243,12 +258,12 @@
                <string>메시지 읽은 멤버 보기</string>
               </property>
               <property name="buddy">
-               <cstring>checkBox</cstring>
+               <cstring>chat_reader_view_chkbox</cstring>
               </property>
              </widget>
             </item>
             <item row="3" column="1">
-             <widget class="QCheckBox" name="checkBox">
+             <widget class="QCheckBox" name="chat_reader_view_chkbox">
               <property name="text">
                <string/>
               </property>
@@ -262,14 +277,14 @@
          </layout>
         </item>
         <item>
-         <widget class="QPushButton" name="btn_add_chat_setting">
+         <widget class="QPushButton" name="add_chat_setting_btn">
           <property name="text">
            <string>추가</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QTableWidget" name="list_chat_setting">
+         <widget class="QTableWidget" name="chat_setting_table">
           <attribute name="horizontalHeaderDefaultSectionSize">
            <number>150</number>
           </attribute>
@@ -305,11 +320,18 @@
           </column>
          </widget>
         </item>
+        <item>
+         <widget class="QPushButton" name="chat_setting_delete_btn">
+          <property name="text">
+           <string>삭제</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="task_list_tab">
        <attribute name="title">
-        <string>작업목록</string>
+        <string>멤버 목록</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
@@ -340,6 +362,39 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_5">
       <item>
+       <widget class="QGroupBox" name="chrome_group">
+        <property name="title">
+         <string>크롬</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <layout class="QFormLayout" name="formLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="chrome_label">
+             <property name="text">
+              <string>경로</string>
+             </property>
+             <property name="buddy">
+              <cstring>chrome_edit</cstring>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="chrome_edit"/>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QPushButton" name="validation_chrome_btn">
+           <property name="text">
+            <string>확인</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
        <widget class="QComboBox" name="setting_combobox">
         <item>
          <property name="text">
@@ -368,6 +423,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QPushButton" name="stop_btn">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="text">
            <string>실행</string>
           </property>
@@ -375,6 +433,9 @@
         </item>
         <item>
          <widget class="QPushButton" name="run_btn">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="text">
            <string>중지</string>
           </property>
@@ -407,28 +468,15 @@
    <property name="text">
     <string>Save</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
   </action>
  </widget>
  <resources/>
  <connections>
   <connection>
-   <sender>btn_validation</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_validate_account_btn_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>798</x>
-     <y>85</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>742</x>
-     <y>-1</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btn_chat_image</sender>
+   <sender>chat_image_btn</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
    <slot>on_open_image_picker()</slot>
@@ -444,23 +492,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>btn_add_account</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_add_account_btn_click()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>798</x>
-     <y>114</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>821</x>
-     <y>77</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>btn_add_chat_setting</sender>
+   <sender>add_chat_setting_btn</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
    <slot>on_add_chat_setting_clicked()</slot>
@@ -523,10 +555,138 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>tabWidget</sender>
+   <signal>currentChanged(int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_tab_changed(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>63</x>
+     <y>42</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>515</x>
+     <y>23</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>id_edit</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_id_changed(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>302</x>
+     <y>73</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>335</x>
+     <y>-6</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pw_edit</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_pw_changed(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>437</x>
+     <y>97</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>493</x>
+     <y>-8</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>validation_chrome_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_validation_chrome_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>767</x>
+     <y>526</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>819</x>
+     <y>499</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>validate_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_validation_account_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>751</x>
+     <y>79</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>869</x>
+     <y>58</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>add_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_add_account_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>780</x>
+     <y>100</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>915</x>
+     <y>94</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>account_delete_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_delete_account_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>433</x>
+     <y>461</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>823</x>
+     <y>423</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>chat_setting_delete_btn</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_delete_chat_setting_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>562</x>
+     <y>452</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>820</x>
+     <y>408</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
-  <slot>on_validate_account_btn_clicked()</slot>
-  <slot>on_add_account_btn_click()</slot>
+  <slot>on_validation_account_clicked()</slot>
+  <slot>on_add_account_clicked()</slot>
   <slot>on_add_band_url_btn_clicked()</slot>
   <slot>on_open_image_picker()</slot>
   <slot>on_add_chat_setting_clicked()</slot>
@@ -534,5 +694,11 @@
   <slot>on_stop_clicked()</slot>
   <slot>save()</slot>
   <slot>on_account_combobox_changed(QString)</slot>
+  <slot>on_tab_changed(int)</slot>
+  <slot>on_id_changed(QString)</slot>
+  <slot>on_pw_changed(QString)</slot>
+  <slot>on_validation_chrome_clicked()</slot>
+  <slot>on_delete_account_clicked()</slot>
+  <slot>on_delete_chat_setting_clicked()</slot>
  </slots>
 </ui>

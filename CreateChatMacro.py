@@ -1,12 +1,13 @@
 import time
 import logging
 from selenium.webdriver.support.ui import *
-from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException
+from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from DriverProvider import *
 from LoginMacro import *
+from DBHelper import *
 
 from PyQt5.QtCore import *
 
@@ -19,8 +20,8 @@ MAX_MEMBER_COUNT = 10
 WAIT_SECONDS = 10
 
 # 디버깅 변수
-#profile_image = r'C:\Users\wooch\OneDrive\바탕 화면\sample.jpg'
-profile_image = r'/Users/jeong-woochang/Desktop/sample.jpeg'
+profile_image = r'C:\Users\wooch\OneDrive\바탕 화면\sample.jpg'
+#profile_image = r'/Users/jeong-woochang/Desktop/sample.jpeg'
 chat_name = '테스트'
 id = 'chad0706@naver.com'
 pw = 'asdf0706'
@@ -58,13 +59,82 @@ keywords = [
 
 members = []
 
-def createChat(driver, url):
+class SendMessageThread(QThread):
+
+    path = ''
+    id = ''
+    pw = ''
+    chat_setting_id = 0
+
+    on_error_send_msg = pyqtSignal(str, str)
+    on_logging_send_msg = pyqtSignal(int, str)
+
+    LOGGING_INFO = 0
+    LOGGING_WARNING = 1
+    LOGGING_ERROR = 2
+
+    def __init__(self, parent=None):
+        super().__init__()
+
+    def run(self):
+        pass
+
+    def stop(self):
+        try:
+            #self.wait(5000) #5000ms = 5s
+            self.isRunning = False
+            self.quit()
+            self.driver.close()
+            self.driver.quit()
+            self.on_logging_send_msg.emit(self.LOGGING_INFO, "작업이 취소됨")
+        except Exception as e:
+            self.on_logging_send_msg.emit(self.LOGGING_WARNING, "제거할 드라이버 없음 : "+str(e))
+
+def getNextBand(driver):
     wait = WebDriverWait(driver, WAIT_SECONDS)
-    global remainings
-    driver.get(url) # 홍보할 밴드 링크
+
+    driver.get("https://band.us")
+
+    i = 1
+    while True:
+        try:
+            item = wait.until(
+                EC.element_to_be_clickable((By.XPATH, f'//*[@id="content"]/div/section/div[2]/div/div/ul/li[{i}]'))
+            )
+        except:
+            break
+        
+        if item.get_attribute('data-item-type') == 'band':
+            title = driver.find_element_by_xpath(f'//*[@id="content"]/div/section/div[2]/div/div/ul/li[{i}]/div/div/a/div[2]/p').text
+            item.click()
+            url = driver.current_url
+            band_id = url[21:]
+            connect()
+            t = not hasBand(id, band_id)
+            close()
+            if t:
+                connect()
+                addBand(band_id, id, title, url)
+                close()
+                return (band_id, id, title, url)
+            connect()
+            t = not isCompleted(id, band_id)
+            close()
+            if t:
+                return (band_id, id, title, url)
+            driver.get('https://band.us/')
+        i+=1
+
+    return None
+
+def getLeaders(driver, band_id):
+    wait = WebDriverWait(driver, WAIT_SECONDS)
+
+    driver.get(f"https://band.us/band/{band_id}") # 홍보할 밴드 링크
 
     done=False
     err_cnt = 0
+    start = time.time()
     while not done:
         try:
             # 리더 선별
@@ -83,14 +153,31 @@ def createChat(driver, url):
                 try:
                     em_class = member.find_element_by_xpath(f'./div[1]/span[1]/em').get_attribute('class')
                     if em_class == 'leader' or em_class == 'coleader':
-                        leaders.append(member.get_attribute('data-user_no'))
+                        leaders.append((member.get_attribute('data-user_no'), id, driver.current_url[21:].split('/')[0], None, time.strftime("%Y-%m-%d")))
                 except:
                     break
             logging.info(leaders)
             done = True
         except Exception:
+            #페이지 무한 로딩 문제 발견
             err_cnt+=1
             logger.exception(f"리더 선별시 문제발생 {err_cnt}")
+            if time.time() - start >= 10:
+                driver.refresh()
+
+    return leaders
+
+def createChat(driver, url, onlyAction=False):
+    wait = WebDriverWait(driver, WAIT_SECONDS)
+    
+    connect()
+    remainings = getRemainings(id, time.strftime("%Y-%m-%d")) 
+    close()
+
+    logging.info(url)
+
+    if not onlyAction:
+        driver.get(url) # 홍보할 밴드 링크
 
     done=False
     err_cnt = 0
@@ -106,14 +193,15 @@ def createChat(driver, url):
             err_cnt += 1
             logger.exception(f"'새채팅'버튼 누를때 문제발생 {err_cnt}")
     
+    member_to_add = []
     try:
         cnt = 0
-        global members
         for keyword in keywords:
-            logging.info(keyword, "작업중")
+            logging.info(keyword+" 작업중")
             search_field = wait.until(
                 EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div/section/div/div/div/form/span/input'))
             )
+            search_field.clear()
             search_field.send_keys(keyword)
             search_btn = wait.until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="wrap"]/div[3]/div/section/div/div/div/form/button'))
@@ -126,28 +214,45 @@ def createChat(driver, url):
                 EC.presence_of_all_elements_located((By.XPATH, '//*[@id="wrap"]/div[3]/div/section/div/div/div/div[3]/ul/li[*]/label/span[3]/span/input'))
             )
             for i in range(len(check_btns)+1):
-                check_btn = driver.find_element_by_xpath(f'//*[@id="wrap"]/div[3]/div/section/div/div/div/div[3]/ul/li[{i+1}]/label/span[3]/span/input')
-                member = check_btn.get_attribute('value')
-                logging.info(member, "검사중")
-                if (not member in members) and (not member in leaders):
+                try:
+                    check_btn = driver.find_element_by_xpath(f'//*[@id="wrap"]/div[3]/div/section/div/div/div/div[3]/ul/li[{i+1}]/label/span[3]/span/input')
+                except NoSuchElementException: #list 끝
+                    break
+                member = (int(check_btn.get_attribute('value')), id, driver.current_url[21:], time.strftime("%Y-%m-%d"))
+                logging.info(str(member))
+                connect()
+                members = getMembers(id)
+                close()
+                overlap = False
+                for _member in members:
+                    if _member[0] == member[0]:
+                        overlap = True
+                        break
+                if not overlap:
                     if cnt < MAX_MEMBER_COUNT and remainings-cnt-1>=0:
-                        check_btn.click()
+                        ActionChains(driver).move_to_element(driver.find_element_by_xpath(f'//*[@id="wrap"]/div[3]/div/section/div/div/div/div[3]/ul/li[{i+1}]/label/span[3]/span/input')).click().perform()
                         cnt+=1
-                        members.append(member)
+                        member_to_add.append(member)
                     else:
                         break
-            if cnt >= MAX_MEMBER_COUNT or remainings-cnt-1<0:
+            if cnt >= MAX_MEMBER_COUNT or remainings-cnt-1<0: # 최대 멤버스 or 초대 가능 인원 수 초과
                 break
+            elif keywords[-1] == keyword: #모든 체크 버튼을 돌았을 때(더이상 체크 버튼이 남아 있지 않음)
+                updateBandCompleted(id, url[21:], 1)
+            else:
+                continue
+
         
-        logging.info(len(members), remainings - cnt)
+        logging.info(f"남은 인원 수 : {remainings - cnt}")
         
         driver.find_element_by_xpath('//*[@id="wrap"]/div[3]/div/section/div/footer/button[2]').click()
     except Exception:
-        logger.exception()
+        logging.exception("")
         raise
-    
-    # TODO: members 업데이트
-    # TODO: remaining 업데이트
+
+    connect()
+    getRemainings(id, time.strftime("%Y-%m-%d"))
+    close()
 
     try:
         open_chat = wait.until(
@@ -155,38 +260,52 @@ def createChat(driver, url):
         )
         open_chat.click()
     except Exception:
-        logger.exception()
+        # 한도수 초과 뜸
+        logging.exception("")
         raise
 
     driver.switch_to.window(driver.window_handles[1])
 
-    applyChatOption(driver=driver, onlyAction=True)
+    chat_id = driver.current_url[35:]
+
+    for member in member_to_add:
+        connect()
+        addMember(member[0], member[1], member[2], chat_id, member[3])
+        close()
+
+    applyChatOption(driver=driver, chat_setting_id = 4, onlyAction=True)
 
     driver.close()
 
     driver.switch_to.window(driver.window_handles[0])
 
-    remainings -= cnt
+def applyChatOption(driver, chat_setting_id, url=None, onlyAction=False):
+    wait = WebDriverWait(driver, WAIT_SECONDS)
 
-def applyChatOption(driver, url=None, onlyAction=False):
-    wait = WebdriverWait(driver, WAIT_SECONDS)
+    connect()
+    setting = getChatSetting(chat_setting_id)
+    close()
 
     if not onlyAction:
         driver.get(url)
     
-    try:    
-        option_btn = wait.until(
-            EC.presence_of_element_located((By.XPATH, '//*[@id="wrap"]/header/button[2]'))
-        )
-        option_btn.click()
+    while True:
+        try:    
+            option_btn = wait.until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="wrap"]/header/button[2]'))
+            )
+            option_btn.click()
 
-        setting_btn = wait.until(
-            EC.element_to_be_clickable((By.XPATH, '//*[@id="layerContainer"]/div/div/section/div/footer/div/button[1]'))
-        )
-        setting_btn.click()
-    except Exception:
-        logger.exception()
-        raise
+            setting_btn = wait.until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="layerContainer"]/div/div/section/div/footer/div/button[1]'))
+            )
+            setting_btn.click()
+            break
+        except TimeoutExceptio:
+            pass
+        except Exception:
+            logging.exception("")
+            raise
 
     try:
         edit_info_btn = wait.until(
@@ -199,17 +318,17 @@ def applyChatOption(driver, url=None, onlyAction=False):
         )
         edit_info_image_input.send_keys(profile_image)
     except Exception:
-        logger.exception()
+        logging.exception("")
         raise
 
     try:
         edit_info_image_done_btn = wait.until(
             EC.element_to_be_clickable((By.XPATH, '//*[@id="layerContainer"]/div/div[4]/section/div/footer/button[2]'))
         )
-        ActionChains(driver).move_to_element(edit_info_image_done_btn).click().perform()
-        #edit_info_image_done_btn.click()
+        #ActionChains(driver).move_to_element(edit_info_image_done_btn).click().perform()
+        edit_info_image_done_btn.click()
     except Exception:
-        logger.exception()
+        logging.exception("")
         raise
 
     done=False
@@ -220,7 +339,7 @@ def applyChatOption(driver, url=None, onlyAction=False):
                 EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div/div[4]/div/div[3]/div/section/div/div/div[2]/input'))
             )
             edit_info_name_input.clear()
-            chat_name = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+            #chat_name = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
             edit_info_name_input.send_keys(chat_name)
 
             edit_info_done_btn = wait.until(
@@ -229,14 +348,21 @@ def applyChatOption(driver, url=None, onlyAction=False):
             edit_info_done_btn.click()
             done = True
         except Exception:
+            #이미지 완료 못 누를시 여기서 걸려있음
             err_cnt+=1
             logger.exception(f"채팅방 이름 변경시 문제발생 {err_cnt}")
+            edit_info_image_done_btn = wait.until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="layerContainer"]/div/div[4]/section/div/footer/button[2]'))
+            )
+            #ActionChains(driver).move_to_element(edit_info_image_done_btn).click().perform()
+            edit_info_image_done_btn.click()
 
     try:
         readers_view_describe = wait.until(
             EC.visibility_of_element_located((By.XPATH, '//*[@id="layerContainer"]/div/div[2]/section/div/div/div/div/ul/li[2]/div/div[1]/p'))
         )
         if readers_view_describe.text == '메시지 읽음수만 표시되고\n누가 읽었는지 확인할 수 없습니다.':
+            
             logging.info("꺼져있음")
             readers_view = wait.until(
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="layerContainer"]/div/div[2]/section/div/div/div/div/ul/li[2]/div/div[2]'))
@@ -250,6 +376,16 @@ def applyChatOption(driver, url=None, onlyAction=False):
             readers_view_ok_btn.click()
         elif readers_view_describe.text == '메시지 읽음수를 눌러\n읽음 멤버를 확인할 수 있어요.':
             logging.info("켜져있음")
+            readers_view = wait.until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="layerContainer"]/div/div[2]/section/div/div/div/div/ul/li[2]/div/div[2]'))
+            )
+            driver.implicitly_wait(10)
+            ActionChains(driver).move_to_element(readers_view).click(readers_view).perform()
+
+            readers_view_ok_btn = wait.until(
+                EC.element_to_be_clickable((By.XPATH, '//*[@id="layerContainer"]/div/div[3]/section/div/div[3]/button[2]'))
+            )
+            readers_view_ok_btn.click()
         else:
             logging.info('오류')
     except Exception:
@@ -297,12 +433,22 @@ def applyChatOption(driver, url=None, onlyAction=False):
             err_cnt+=1
             logger.exception(f"설정 닫기 문제 발생 {err_cnt}")
     
-driver = setup_driver()
+driver = setup_driver("C:\Program Files\Google\Chrome\Application\chrome.exe")
 result = loginWithEmail(driver, id, pw)
 if result == LOGIN_SUCCESS or result == LOGGED_IN:
     #applyChatOption(driver=driver, url='https://band.us/band/60518206/chat/CYlHvZ')
+    while True:
+        band = getNextBand(driver)
+        if band is None:
+            break
+        leaders = getLeaders(driver, band[0])
 
-    global remainings
-    remainings = 950
-    while remainings>0:
-        createChat(driver, 'https://band.us/band/60518206')
+        connect()
+        for leader in leaders:
+            if not hasMember(id, leader[0]):
+                logging.info(leader)
+                addMember(*leader)
+        close()
+        createChat(driver, band[3])
+        
+
