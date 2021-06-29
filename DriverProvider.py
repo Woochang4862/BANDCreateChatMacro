@@ -18,7 +18,7 @@ logging.basicConfig(format=FORMAT, filename='./log/create_chat_macro.log')
 logger.setLevel(logging.DEBUG)
 
 def open_chrome_with_debug_mode(path):
-    logging.debug(f"path : {path}")
+    logging.info(f"path : {path}")
     if path == '':
         if platform.architecture()[0] == '32bit':
             return subprocess.Popen(f'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe --remote-debugging-port=9222 --user-data-dir=C:/ChromeTEMP --daemon')

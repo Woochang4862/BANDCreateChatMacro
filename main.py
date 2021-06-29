@@ -14,7 +14,7 @@ from collections import deque
 logger = logging.getLogger()
 FORMAT = "[%(asctime)s][%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
 logging.basicConfig(format=FORMAT, filename='./log/create_chat_macro.log')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 form_class = uic.loadUiType(os.path.abspath("./ui/create_chat_macro_v2.ui"))[0]
 
@@ -35,8 +35,6 @@ class MyWindow(QMainWindow, form_class):
     """
     accounts = []
     settings = []
-    oper_accounts = deque([])
-    oper_settings = deque([])
     """
     ::END::
     """
@@ -45,8 +43,6 @@ class MyWindow(QMainWindow, form_class):
     상수
     ::START::
     """
-    OPER_DELETE = 0
-    OPER_ADD = 1
     """
     ::END::
     """
@@ -69,63 +65,24 @@ class MyWindow(QMainWindow, form_class):
         ::END::
         """
 
-        """
-        메뉴바
-        ::START::
-        """
-        self.actionSave.triggered.connect(self.on_save_clicked)
-        """
-        ::END::
-        """
-
         connect()
         self.accounts = getAccounts()
         self.settings = getChatSettings()
-        #self.chrome_edit.setText(getStringExtra(KEY_CHROME_ROUTE, ""))
+        self.chrome_edit.setText(getStringExtra(KEY_CHROME_ROUTE, ""))
         close()
         self.bindToAccountTable()
         self.bindToChatSettingTable()
-
-    """
-    메뉴바
-    ::START::
-    """
-    def on_save_clicked(self):
-        logging.debug("계정 저장")
-        connect()
-        logging.debug(f"프로그램에 저장된 계정 목록(저장되지 않음): {self.accounts}")
-        add_cnt = 0
-        delete_cnt = 0
-        for oper in self.oper_accounts:
-            if oper[0] == self.OPER_ADD:
-                addAccount(oper[1][0], oper[1][1])
-                add_cnt+=1
-            if oper[0] == self.OPER_DELETE:
-                deleteAccount(oper[1][0])
-                delete_cnt+=1
-        self.accounts = getAccounts()
-        close()
-
-        if add_cnt != 0:
-            logging.debug("계정 저장", f"{add_cnt} 개가 DB에 추가됨")
-        if delete_cnt != 0:
-            logging.debug("계정 저장", f"{delete_cnt} 개가 DB에서 삭제됨")
-
-        self.oper_accounts.clear()
-
-        connect()
-        putStringExtra(KEY_CHROME_ROUTE, self.chrome_edit.text())
-        putStringExtra(KEY_KEYWORD, self.keyword_edit.text())
-        putStringExtra(KEY_CONTENT, self.content_edit.toPlainText())
-        close()
-    """
-    ::END::
-    """
+        self.bindToChatSettingComboBox()
 
     """
     크롬 경로 설정
     ::START::
     """
+    def on_chrome_route_edited(self, text):
+        connect()
+        putStringExtra(KEY_CHROME_ROUTE, text)
+        close()
+
     def on_validation_chrome_clicked(self):
         logging.info("크롬 확인", "크롬 경로 확인 중 ...")
         try:
@@ -146,11 +103,11 @@ class MyWindow(QMainWindow, form_class):
     ::START::
     """
     def on_id_changed(self, text):
-        logging.debug(text)
+        logging.info(text)
         self.toggleAddButton(False)
 
     def on_pw_changed(self, text):
-        logging.debug(text)
+        logging.info(text)
         self.toggleAddButton(False)
 
     def toggleAddButton(self, enabled=None):
@@ -160,7 +117,7 @@ class MyWindow(QMainWindow, form_class):
             self.add_btn.setEnabled(enabled)
 
     def on_validation_account_clicked(self):
-        logging.debug("계정 확인")
+        logging.info("계정 확인")
         id = self.id_edit.text().strip()
         pw = self.pw_edit.text().strip()
 
@@ -173,7 +130,7 @@ class MyWindow(QMainWindow, form_class):
             logging.info("계정 확인", "이메일 혹은 비밀번호가 비어 있음")
 
     def on_add_account_clicked(self):
-        logging.debug("계정 추가")
+        logging.info("계정 추가")
         id = self.id_edit.text().strip()
         pw = self.pw_edit.text().strip()
         
@@ -181,12 +138,14 @@ class MyWindow(QMainWindow, form_class):
             if _id == id:
                 logging.info("계정 추가", "동일한 이메일이 이미 존재함")
                 return
-        self.accounts.append((id,pw))
-        self.oper_accounts.append((self.OPER_ADD,(id,pw)))
 
-        logging.info("계정 추가", f"{id} 을/를 추가함")
+        connect()
+        addAccount(id, pw)
+        self.accounts = getAccounts()
+        close()
 
         self.bindToAccountTable()
+        self.bindToAccountComboBox()
 
         self.id_edit.clear()
         self.pw_edit.clear()
@@ -196,7 +155,7 @@ class MyWindow(QMainWindow, form_class):
         self.validateRunButton()
 
     def on_delete_account_clicked(self):
-        logging.debug("계정 삭제")
+        logging.info("계정 삭제")
         
         deletedAccounts = 0
         for _range in self.account_table.selectedRanges():
@@ -206,12 +165,14 @@ class MyWindow(QMainWindow, form_class):
             for row in range(topRow, bottomRow+1):
                 id = self.account_table.item(row, 0).text()
                 pw = self.account_table.item(row, 1).text()
-                self.accounts.remove((id,pw))
-                self.oper_accounts.append((self.OPER_DELETE, (id,pw)))
-                deletedAccounts+=1
+                connect()
+                deleteAccount(id)
+                close()
 
-        logging.info("계정 삭제", f"{deletedAccounts} 개를 삭제 시킴")
-
+        connect()
+        self.accounts = getAccounts()
+        close()
+        
         self.bindToAccountTable()
 
         self.validateRunButton()
@@ -233,6 +194,13 @@ class MyWindow(QMainWindow, form_class):
         self.account_table.resizeColumnsToContents()  # 이것만으로는 checkbox 컬럼은 잘 조절안됨.
 
         logging.info("계정 로딩", f"{len(self.accounts)} 개가 로딩됨")
+
+    def bindToAccountComboBox(self):
+        self.account_combobox.clear()
+        self.account_combobox.addItem("계정")
+
+        for (id, pw) in self.accounts:
+            self.account_combobox.addItem(id)
 
     @pyqtSlot()
     def state_logged_in(self):
@@ -279,11 +247,11 @@ class MyWindow(QMainWindow, form_class):
 
     def on_open_image_picker(self):
         fname = QFileDialog.getOpenFileName(self, filter="Images (*.png *.jpg *.jpeg)")
-        logging.debug(f"불러온 파일 경로 : {fname[0]}")
+        logging.info(f"불러온 파일 경로 : {fname[0]}")
         self.chat_image_btn.setText(fname[0])
 
     def on_add_chat_setting_clicked(self):
-        logging.debug("설정 추가")
+        logging.info("설정 추가")
 
         mp = ""
 
@@ -307,6 +275,7 @@ class MyWindow(QMainWindow, form_class):
         self.settings = getChatSettings()
         close()
         self.bindToChatSettingTable()
+        self.bindToChatSettingComboBox()
 
     def on_delete_chat_setting_clicked(self):
         deletedSettings = 0
@@ -329,12 +298,13 @@ class MyWindow(QMainWindow, form_class):
         self.settings = getChatSettings()
         close()
         self.bindToChatSettingTable()
+        self.bindToChatSettingComboBox()
 
     def bindToChatSettingTable(self):
         self.chat_setting_table.clear()
         self.chat_setting_table.setColumnCount(5)
         self.chat_setting_table.setRowCount(len(self.settings))
-        self.chat_setting_table.setHorizontalHeaderLabels(["설정 이름", "채팅방 이름", "채팅방 이미지", ])
+        self.chat_setting_table.setHorizontalHeaderLabels(["설정 이름", "채팅방 이름", "채팅방 이미지", "읽은 멤버 보기", "보관기간"])
 
         for idx, (id, name, chatName, chatImage, chatReadersView, chatMessagePeriod) in enumerate(self.settings): # 사용자정의 item 과 checkbox widget 을, 동일한 cell 에 넣어서 , 추후 정렬 가능하게 한다. 
 
@@ -342,7 +312,7 @@ class MyWindow(QMainWindow, form_class):
             self.chat_setting_table.setItem(idx, 1, QTableWidgetItem(chatName)) 
             self.chat_setting_table.setItem(idx, 2, QTableWidgetItem(chatImage)) 
             self.chat_setting_table.setItem(idx, 3, QTableWidgetItem("읽음 멤버 보기" if chatReadersView == 1 else "읽은 멤버 보지 않기")) 
-            self.chat_setting_table.setItem(idx, 4, QTableWidgetItem(chatMessagePeriod)) 
+            self.chat_setting_table.setItem(idx, 4, QTableWidgetItem(list(self.message_period.keys())[list(self.message_period.values()).index(chatMessagePeriod)])) 
 
         self.chat_setting_table.setSortingEnabled(False)  # 정렬기능
         self.chat_setting_table.resizeRowsToContents()
@@ -350,16 +320,46 @@ class MyWindow(QMainWindow, form_class):
 
         logging.info("계정 로딩", f"{len(self.settings)} 개가 로딩됨")
 
+    def bindToChatSettingComboBox(self):
+        self.setting_combobox.clear()
+        self.setting_combobox.addItem("설정")
+
+        for (_,name,_,_,_,_) in self.settings:
+            self.setting_combobox.addItem(name)
+
     """
     ::END::
     """
 
     """
-    작업 목록 화면
+    멤버 목록 화면
     ::START::
     """
     def on_account_combobox_changed(self, account_id):
-        logging.debug(f"선택된 아이디 : {account_id}")
+        logging.info(f"선택된 아이디 : {account_id}")
+
+        self.member_tree.clear()
+
+        if account_id == "계정":
+            return
+
+        connect()
+        self.bands = getBands(account_id)
+        close()
+
+        for (band_id, account_id, name, url, completed) in self.bands:
+            band_node = QTreeWidgetItem(self.member_tree)
+            band_node.setText(0,f"{name}({'완료' if completed==1 else '미완료'})")
+            connect()
+            members = getMembers(account_id, band_id)
+            close()
+            for (member_id, _, _, chat_id, date) in members:
+                member_node = QTreeWidgetItem(band_node)
+                member_node.setText(0,f"{member_id}({chat_id}/{date})")
+            
+                
+
+            
     """
     ::END::
     """
@@ -369,7 +369,7 @@ class MyWindow(QMainWindow, form_class):
     ::START::
     """
     def on_tab_changed(self, index):
-        logging.debug(f"선택된 탭 : {index}")
+        logging.info(f"선택된 탭 : {index}")
         if index == 0:
             connect()
             self.accounts = getAccounts()
@@ -381,7 +381,10 @@ class MyWindow(QMainWindow, form_class):
             close()
             self.bindToChatSettingTable()
         elif index == 2:
-            pass
+            connect()
+            self.accounts = getAccounts()
+            close()
+            self.bindToAccountComboBox()
 
     """
     ::END::
@@ -391,14 +394,44 @@ class MyWindow(QMainWindow, form_class):
     실행/중단 설정
     ::START::
     """
+    def on_chat_setting_combobox_changed(self, chat_setting):
+        self.validateRunButton()
+
     def on_run_clicked(self):
-        logging.debug("실행")
+        logging.info("실행")
+
+        self.toggleRunButton(False)
+        self.toggleStopButton(True)
+        
+        self.i = 0
+        self.isRunning = True
+
+        if self.i < len(self.accounts) and self.isRunning:
+            id,pw = self.accounts[self.i]
+            self.i+=1
+            self.progressBar.reset()
+            connect()
+            self.progressBar.setValue((1000-getRemainings(id, time.strftime("%Y-%m-%d")))//10)
+            close()
+            self.createChatThread = CreateChatThread(parent=self)
+            self.createChatThread.on_finished_create_chat.connect(self.on_finished_create_chat)
+            self.createChatThread.on_error_create_chat.connect(self.on_error_create_chat)
+            self.createChatThread.id = id
+            self.createChatThread.pw = pw
+            self.createChatThread.path = self.chrome_edit.text().strip()
+            self.createChatThread.chat_setting_id = self.settings[self.setting_combobox.currentIndex()-1][0]
+            self.createChatThread.start()
         
     def on_stop_clicked(self):
-        logging.debug("중단")
+        logging.info("중단")
+        if self.createChatThread.isRunning():
+            self.createChatThread.stop()
+        self.isRunning = False
+        self.toggleStopButton(False)
+        self.toggleRunButton(True)
 
     def validateRunButton(self):
-        if len(self.accounts) == 0 or self.current_chat_setting == "설정":
+        if len(self.accounts) == 0 or self.setting_combobox.currentText() == "설정":
             self.toggleRunButton(False)
         else:
             self.toggleRunButton(True)
@@ -414,6 +447,32 @@ class MyWindow(QMainWindow, form_class):
             self.stop_btn.setEnabled(not self.stop_btn.isEnabled())
         else:
             self.stop_btn.setEnabled(enabled)
+
+    def on_finished_create_chat(self, id):
+        connect()
+        remainings = getRemainings(id, time.strftime("%Y-%m-%d"))
+        close()
+        self.progressBar.setValue((1000-remainings)//10)
+        if remainings > 0:
+            return
+        if self.i < len(self.accounts) and self.isRunning:
+            id,pw = self.accounts[self.i]
+            self.i+=1
+            self.on_stop_clicked()
+            self.createChatThread = CreateChatThread(parent=self)
+            self.createChatThread.on_finished_create_chat.connect(self.on_finished_create_chat)
+            self.createChatThread.on_error_create_chat.connect(self.on_error_create_chat)
+            self.createChatThread.id = id
+            self.createChatThread.pw = pw
+            self.createChatThread.path = self.chrome_edit.text().strip()
+            self.createChatThread.chat_setting_id = self.settings[self.setting_combobox.currentIndex()-1][0]
+            self.createChatThread.start()
+        else:
+            self.on_stop_clicked()
+            self.validateRunButton()
+        
+    def on_error_create_chat(self, id, msg):
+        logging.info(f"{id}에서 {msg}")
     """
     :::END::
     """

@@ -19,6 +19,39 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
+     <widget class="QGroupBox" name="chrome_group">
+      <property name="title">
+       <string>크롬</string>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item>
+        <layout class="QFormLayout" name="formLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="chrome_label">
+           <property name="text">
+            <string>경로</string>
+           </property>
+           <property name="buddy">
+            <cstring>chrome_edit</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="chrome_edit"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="validation_chrome_btn">
+         <property name="text">
+          <string>확인</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="enabled">
        <bool>true</bool>
@@ -344,7 +377,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QTreeWidget" name="list_band">
+         <widget class="QTreeWidget" name="member_tree">
           <property name="headerHidden">
            <bool>true</bool>
           </property>
@@ -353,6 +386,16 @@
             <string/>
            </property>
           </column>
+          <item>
+           <property name="text">
+            <string>밴드(완료/미완료)</string>
+           </property>
+           <item>
+            <property name="text">
+             <string>멤버(채팅방 아이디/날짜)</string>
+            </property>
+           </item>
+          </item>
          </widget>
         </item>
        </layout>
@@ -361,39 +404,6 @@
     </item>
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_5">
-      <item>
-       <widget class="QGroupBox" name="chrome_group">
-        <property name="title">
-         <string>크롬</string>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
-         <item>
-          <layout class="QFormLayout" name="formLayout">
-           <item row="0" column="0">
-            <widget class="QLabel" name="chrome_label">
-             <property name="text">
-              <string>경로</string>
-             </property>
-             <property name="buddy">
-              <cstring>chrome_edit</cstring>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLineEdit" name="chrome_edit"/>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <widget class="QPushButton" name="validation_chrome_btn">
-           <property name="text">
-            <string>확인</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
       <item>
        <widget class="QComboBox" name="setting_combobox">
         <item>
@@ -422,7 +432,7 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
-         <widget class="QPushButton" name="stop_btn">
+         <widget class="QPushButton" name="run_btn">
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -432,7 +442,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="run_btn">
+         <widget class="QPushButton" name="stop_btn">
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -446,23 +456,6 @@
      </layout>
     </item>
    </layout>
-  </widget>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>824</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menu">
-    <property name="title">
-     <string>파일</string>
-    </property>
-    <addaction name="actionSave"/>
-   </widget>
-   <addaction name="menu"/>
   </widget>
   <action name="actionSave">
    <property name="text">
@@ -483,7 +476,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>799</x>
-     <y>136</y>
+     <y>176</y>
     </hint>
     <hint type="destinationlabel">
      <x>822</x>
@@ -498,8 +491,8 @@
    <slot>on_add_chat_setting_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>745</x>
-     <y>242</y>
+     <x>756</x>
+     <y>282</y>
     </hint>
     <hint type="destinationlabel">
      <x>824</x>
@@ -508,7 +501,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>stop_btn</sender>
+   <sender>run_btn</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
    <slot>on_run_clicked()</slot>
@@ -524,7 +517,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>run_btn</sender>
+   <sender>stop_btn</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
    <slot>on_stop_clicked()</slot>
@@ -546,8 +539,8 @@
    <slot>on_account_combobox_changed(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>309</x>
-     <y>74</y>
+     <x>320</x>
+     <y>119</y>
     </hint>
     <hint type="destinationlabel">
      <x>817</x>
@@ -562,8 +555,8 @@
    <slot>on_tab_changed(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>63</x>
-     <y>42</y>
+     <x>72</x>
+     <y>133</y>
     </hint>
     <hint type="destinationlabel">
      <x>515</x>
@@ -578,8 +571,8 @@
    <slot>on_id_changed(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>302</x>
-     <y>73</y>
+     <x>370</x>
+     <y>122</y>
     </hint>
     <hint type="destinationlabel">
      <x>335</x>
@@ -594,8 +587,8 @@
    <slot>on_pw_changed(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>437</x>
-     <y>97</y>
+     <x>505</x>
+     <y>148</y>
     </hint>
     <hint type="destinationlabel">
      <x>493</x>
@@ -610,8 +603,8 @@
    <slot>on_validation_chrome_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>767</x>
-     <y>526</y>
+     <x>804</x>
+     <y>53</y>
     </hint>
     <hint type="destinationlabel">
      <x>819</x>
@@ -626,8 +619,8 @@
    <slot>on_validation_account_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>751</x>
-     <y>79</y>
+     <x>798</x>
+     <y>125</y>
     </hint>
     <hint type="destinationlabel">
      <x>869</x>
@@ -642,8 +635,8 @@
    <slot>on_add_account_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>780</x>
-     <y>100</y>
+     <x>798</x>
+     <y>154</y>
     </hint>
     <hint type="destinationlabel">
      <x>915</x>
@@ -658,8 +651,8 @@
    <slot>on_delete_account_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>433</x>
-     <y>461</y>
+     <x>444</x>
+     <y>529</y>
     </hint>
     <hint type="destinationlabel">
      <x>823</x>
@@ -674,12 +667,44 @@
    <slot>on_delete_chat_setting_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>562</x>
-     <y>452</y>
+     <x>573</x>
+     <y>529</y>
     </hint>
     <hint type="destinationlabel">
      <x>820</x>
      <y>408</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>setting_combobox</sender>
+   <signal>currentIndexChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_chat_setting_combobox_changed(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>58</x>
+     <y>560</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>909</x>
+     <y>553</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>chrome_edit</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_chrome_route_edited(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>216</x>
+     <y>43</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>749</x>
+     <y>-9</y>
     </hint>
    </hints>
   </connection>
@@ -700,5 +725,7 @@
   <slot>on_validation_chrome_clicked()</slot>
   <slot>on_delete_account_clicked()</slot>
   <slot>on_delete_chat_setting_clicked()</slot>
+  <slot>on_chat_setting_combobox_changed(QString)</slot>
+  <slot>on_chrome_route_edited(QString)</slot>
  </slots>
 </ui>
