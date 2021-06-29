@@ -88,6 +88,7 @@ class MyWindow(QMainWindow, form_class):
         try:
             driver = setup_driver(self.chrome_edit.text().strip())
             driver.close()
+            driver.quit()
             logging.info("크롬 확인", "올바른 크롬 경로")
             QMessageBox.information(self.centralwidget, '크롬 경로 확인', '올바른 크롬 경로입니다', QMessageBox.Ok, QMessageBox.Ok)
         except:
@@ -473,6 +474,11 @@ class MyWindow(QMainWindow, form_class):
         
     def on_error_create_chat(self, id, msg):
         logging.info(f"{id}에서 {msg}")
+
+        if msg == "한도 수 초과":
+            self.on_stop_clicked()
+            self.validateRunButton()
+
     """
     :::END::
     """

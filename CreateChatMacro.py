@@ -1,7 +1,7 @@
 import time
 import logging
 from selenium.webdriver.support.ui import *
-from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException
+from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException, UnexpectedAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
@@ -94,11 +94,11 @@ class CreateChatThread(QThread):
                     self.on_finished_create_chat.emit(self.id)
             self.driver.close()
             self.driver.quit()
-        except:
+        except UnexpectedAlertPresentException:
             logging.exception("")
-            if hasattr(self, driver):
-                self.driver.close()
-                self.driver.quit()
+            self.on_error_create_chat.emit(self.id, "한도 수 초과")
+        except Exception:
+            logging.exception("")
 
     def stop(self):
         try:
@@ -274,6 +274,10 @@ class CreateChatThread(QThread):
                 EC.element_to_be_clickable((By.XPATH, '//*[@id="wrap"]/div[3]/div/section/div/div[3]/button[2]'))
             )
             open_chat.click()
+        except UnexpectedAlertPresentException:
+            self.driver.close()
+            self.driver.quit()
+            raise
         except Exception:
             # 한도수 초과 뜸
             logging.exception("")
