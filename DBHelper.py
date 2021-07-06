@@ -48,7 +48,7 @@ def connect():
     cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_ACCOUNT}({ACCOUNT_ID} text primary key, {ACCOUNT_PW} text)")
     cursor.execute(f"CREATE TABLE IF NOT EXISTS  {TABLE_BAND}({BAND_ID} integer, {BAND_ACCOUNT_ID} text, {BAND_NAME} text, {BAND_URL} text, {BAND_COMPLETED} integer default 0, foreign key({BAND_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), primary key({BAND_ID}, {BAND_ACCOUNT_ID}))")
     cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_CHAT_SETTING}({CHAT_SETTING_ID} integer primary key autoincrement, {CHAT_SETTING_NAME} text, {CHAT_SETTING_CHAT_NAME} text, {CHAT_SETTING_CHAT_IMAGE} text, {CHAT_SETTING_READERS_VIEW} integer default 1, {CHAT_SETTING_MESSAGE_PERIOD} text)")
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_MEMBER}({MEMBER_ID} integer primary key, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}))")
+    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_MEMBER}({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}))")
     cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_PREFERENCE}({PREFERENCE_KEY} text primary key, {PREFERENCE_STRING} text, {PREFERENCE_INTEGER} integer, {PREFERENCE_REAL} real)")
     cursor.execute("PRAGMA foreign_keys=1")
 
@@ -84,8 +84,8 @@ def deleteAccounts(accounts):
     for account in accounts:
         deleteAccount(account[0])
 
-def addBand(id, account_id, name, url):
-    cursor.execute(f"INSERT INTO {TABLE_BAND} ({BAND_ID}, {BAND_ACCOUNT_ID}, {BAND_NAME}, {BAND_URL}) VALUES('{id}', '{account_id}', '{name}', '{url}')")
+def addBand(id, account_id, name, url, completed=0):
+    cursor.execute(f"INSERT INTO {TABLE_BAND} ({BAND_ID}, {BAND_ACCOUNT_ID}, {BAND_NAME}, {BAND_URL}, {BAND_COMPLETED}) VALUES('{id}', '{account_id}', ?, '{url}', '{completed}')", (name,))
     con.commit()
 
 def getBands(account_id):
@@ -97,7 +97,7 @@ def getBand(band_id, account_id):
     return cursor.fetchall()[0]
 
 def updateBandCompleted(account_id, band_id, completed):
-    cursor.execute(f"UPDATE {TABLE_BAND} SET {BAND_COMPLETED} = {completed} WHERE {BAND_ACCOUNT_ID} = '{account_id}', {BAND_ID} = {id};")
+    cursor.execute(f"UPDATE {TABLE_BAND} SET {BAND_COMPLETED} = {completed} WHERE {BAND_ACCOUNT_ID} = '{account_id}' AND {BAND_ID} = {band_id};")
     con.commit()
 
 def addChatSetting(name, chatName, chatImage, chatReadersView, chatMessagePeriod):
@@ -115,6 +115,7 @@ def deleteChatSettings(ids):
         deleteChatSetting(id)
 
 def addMember(member_id, account_id, band_id, chat_id, date):
+    print(member_id, account_id, band_id, chat_id, date)
     cursor.execute(f"INSERT INTO {TABLE_MEMBER} ({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_BAND_ID}, {MEMBER_CHAT_ID}, {MEMBER_DATE}) VALUES('{member_id}', '{account_id}', '{band_id}', '{chat_id}', '{date}')")
     con.commit()
 
@@ -154,9 +155,15 @@ def getChatSetting(setting_id):
     cursor.execute(f"SELECT * FROM {TABLE_CHAT_SETTING} WHERE {CHAT_SETTING_ID} = {setting_id}")
     return cursor.fetchall()[0]
 
+def getNumberOfMembers(account_id, band_id):
+    cursor.execute(f"SELECT COUNT(*) FROM {TABLE_MEMBER} WHERE {BAND_ID} = {band_id} AND {BAND_ACCOUNT_ID} = '{account_id}'")
+    return cursor.fetchone()[0]
+
 connect()
+#updateBandCompleted('hungsung0231@gmail.com',71757012,0)
 #addAccount('chad0706@naver.com', 'asdf0706')
-#addBand('세상을 바꾸는 시간 15분', 'https://band.us/band/60518206')
+#addBand(48511215, 'hungsung0232@gmail.com', "윤보영시인의 팬밴드 '커피도 가끔은 사랑이 된다'", 'https://band.us/band/48511215')
 #addChatSetting('테스트 세팅', '테스트', r'C:\Users\wooch\OneDrive\바탕 화면\sample.jpg', 1 if True else 0, 'min')
 #print(getRemainings('chad0706@naver.com', '2021-06-29'))
+#addMember(74767098, 'hungsung0232@gmail.com', 72837984, 'CZmZ77', '2021-06-30')
 close()

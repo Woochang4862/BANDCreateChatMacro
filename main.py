@@ -51,6 +51,8 @@ class MyWindow(QMainWindow, form_class):
         super().__init__()
         self.setupUi(self)
 
+        self.setWindowIcon(QIcon('icon.ico'))
+
         """
         스레드
         ::START::
@@ -416,6 +418,7 @@ class MyWindow(QMainWindow, form_class):
             close()
             self.createChatThread = CreateChatThread(parent=self)
             self.createChatThread.on_finished_create_chat.connect(self.on_finished_create_chat)
+            self.createChatThread.on_update_progressbar.connect(self.on_update_progressbar)
             self.createChatThread.on_error_create_chat.connect(self.on_error_create_chat)
             self.createChatThread.id = id
             self.createChatThread.pw = pw
@@ -425,7 +428,7 @@ class MyWindow(QMainWindow, form_class):
         
     def on_stop_clicked(self):
         logging.info("중단")
-        if self.createChatThread.isRunning():
+        if self.createChatThread.isRunning:
             self.createChatThread.stop()
         self.isRunning = False
         self.toggleStopButton(False)
@@ -449,19 +452,25 @@ class MyWindow(QMainWindow, form_class):
         else:
             self.stop_btn.setEnabled(enabled)
 
-    def on_finished_create_chat(self, id):
+    def on_update_progressbar(self, id):
         connect()
         remainings = getRemainings(id, time.strftime("%Y-%m-%d"))
         close()
         self.progressBar.setValue((1000-remainings)//10)
-        if remainings > 0:
-            return
+
+    def on_finished_create_chat(self, id):
         if self.i < len(self.accounts) and self.isRunning:
             id,pw = self.accounts[self.i]
             self.i+=1
-            self.on_stop_clicked()
+            if self.createChatThread.isRunning:
+                self.createChatThread.stop()
+            self.progressBar.reset()
+            connect()
+            self.progressBar.setValue((1000-getRemainings(id, time.strftime("%Y-%m-%d")))//10)
+            close()
             self.createChatThread = CreateChatThread(parent=self)
             self.createChatThread.on_finished_create_chat.connect(self.on_finished_create_chat)
+            self.createChatThread.on_update_progressbar.connect(self.on_update_progressbar)
             self.createChatThread.on_error_create_chat.connect(self.on_error_create_chat)
             self.createChatThread.id = id
             self.createChatThread.pw = pw
