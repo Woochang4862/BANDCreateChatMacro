@@ -457,7 +457,7 @@ class CreateChatThread(QThread):
             raise MemberExceededException()
         except AttributeError:
             raise MemberExceededException()
-        except Exception:
+        except Exception: # 여기에서 마지막까지 갔을때 멈춤 #436 왜 실행 안됨?
             logging.exception("")
             raise
 
