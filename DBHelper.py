@@ -45,15 +45,33 @@ def connect():
     global cursor
     con = sqlite3.connect(f"./{DB_NAME}")
     cursor = con.cursor()
+
     cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_ACCOUNT}({ACCOUNT_ID} text primary key, {ACCOUNT_PW} text)")
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS  {TABLE_BAND}({BAND_ID} integer, {BAND_ACCOUNT_ID} text, {BAND_NAME} text, {BAND_URL} text, {BAND_COMPLETED} integer default 0, foreign key({BAND_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), primary key({BAND_ID}, {BAND_ACCOUNT_ID}))")
+    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_BAND}({BAND_ID} integer, {BAND_ACCOUNT_ID} text, {BAND_NAME} text, {BAND_URL} text, {BAND_COMPLETED} integer default 0, foreign key({BAND_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), primary key({BAND_ID}, {BAND_ACCOUNT_ID}))")
     cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_CHAT_SETTING}({CHAT_SETTING_ID} integer primary key autoincrement, {CHAT_SETTING_NAME} text, {CHAT_SETTING_CHAT_NAME} text, {CHAT_SETTING_CHAT_IMAGE} text, {CHAT_SETTING_READERS_VIEW} integer default 1, {CHAT_SETTING_MESSAGE_PERIOD} text)")
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_MEMBER}({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}))")
+    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_MEMBER}({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_CHAT_ID}, {MEMBER_BAND_ID}))")
     cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_PREFERENCE}({PREFERENCE_KEY} text primary key, {PREFERENCE_STRING} text, {PREFERENCE_INTEGER} integer, {PREFERENCE_REAL} real)")
     cursor.execute("PRAGMA foreign_keys=1")
+    cursor.execute(f"select * from sqlite_master where type='table' and name='{TABLE_MEMBER}';")
+    result = cursor.fetchall()[0][4]
+    if result.lower() != f"CREATE TABLE \"{TABLE_MEMBER}\"({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_CHAT_ID}, {MEMBER_BAND_ID}))".lower():
+        cursor.execute("begin")
+        try:
+            cursor.execute(f"CREATE TABLE IF NOT EXISTS new_{TABLE_MEMBER}({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_CHAT_ID}, {MEMBER_BAND_ID}))")
+            cursor.execute(f"INSERT INTO new_{TABLE_MEMBER}({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_BAND_ID}, {MEMBER_CHAT_ID}, {MEMBER_DATE}) SELECT * FROM {TABLE_MEMBER}")
+            cursor.execute(f"DROP TABLE {TABLE_MEMBER}")
+            cursor.execute(f"ALTER TABLE new_{TABLE_MEMBER} RENAME TO {TABLE_MEMBER}")
+            con.commit()
+        except sql.Error:
+            con.rollback()
 
 def close():
+    global cursor
+    global con
+    cursor.close()
+    del cursor
     con.close()
+    del con
 
 def putStringExtra(key, extra):
     cursor.execute(f"INSERT OR REPLACE INTO {TABLE_PREFERENCE}({PREFERENCE_KEY}, {PREFERENCE_STRING}) VALUES ('{key}', '{extra}')")

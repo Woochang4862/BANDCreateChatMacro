@@ -452,10 +452,7 @@ class MyWindow(QMainWindow, form_class):
         else:
             self.stop_btn.setEnabled(enabled)
 
-    def on_update_progressbar(self, id):
-        connect()
-        remainings = getRemainings(id, time.strftime("%Y-%m-%d"))
-        close()
+    def on_update_progressbar(self, remainings):
         self.progressBar.setValue((1000-remainings)//10)
 
     def on_finished_create_chat(self, id):

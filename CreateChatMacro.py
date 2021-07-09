@@ -61,6 +61,15 @@ class MemberExceededException(Exception):
     def __str__(self):
         return "멤버수 초과!"
 
+class ChatRestrictionBandException(Exception):
+    def __str__(self):
+        return "체팅 제한 밴드!"
+
+class PrivateChatRestrictionBandException(Exception):
+    def __str__(self):
+        return "비공개 채팅 제한 밴드!"
+
+
 class CreateChatThread(QThread):
 
     path = ''
@@ -69,7 +78,7 @@ class CreateChatThread(QThread):
     chat_setting_id = 0
 
     on_finished_create_chat = pyqtSignal(str)
-    on_update_progressbar = pyqtSignal(str)
+    on_update_progressbar = pyqtSignal(int)
     on_error_create_chat = pyqtSignal(str, str) # 발생한 계정, 오류 메시지
 
     def __init__(self, parent=None):
@@ -92,36 +101,53 @@ class CreateChatThread(QThread):
                         else:
                             updateBandCompleted(self.id, band[0], 1)
                     close()
+                    nextBand = True
+                    band = None
                     while self.isRunning:
-                        band = self.getNextBand(self.driver) # band_id, account_id, name, url, completed
-                        if band is None:
-                            break
-                        if band[4] == 1:
-                            continue
+                        if nextBand:
+                            nextBand = False
+                            band = self.getNextBand(self.driver) # band_id, account_id, name, url, completed
+                            if band is None:
+                                break
+                            if band[4] == 1:
+                                continue
 
-                        connect()
-                        n_numbers = getNumberOfMembers(self.id, band[0])
-                        close()
-                        if n_numbers == 0:
-                            leaders = self.getLeaders(self.driver, band[0])
-                            for leader in leaders:
-                                connect()
-                                if not hasMember(self.id, leader[0]):
-                                    logging.info(leader)
-                                    addMember(*leader)
-                                close()
+                            connect()
+                            n_numbers = getNumberOfMembers(self.id, band[0])
+                            close()
+                            if n_numbers == 0:
+                                leaders = self.getLeaders(self.driver, band[0])
+                                for leader in leaders:
+                                    connect()
+                                    if not hasMember(self.id, leader[0]):
+                                        logging.info(leader)
+                                        addMember(*leader)
+                                    close()
 
                         try:
                             self.createChat(self.driver, band[0])
+                        except ChatRestrictionBandException:
+                            nextBand = True
+                        except PrivateChatRestrictionBandException:
+                            nextBand = True
                         except MemberExceededException:
-                            break
+                            self.driver.close()
+                            self.driver.quit()
+                            self.on_finished_create_chat.emit(self.id)
+                            return
+
                         
                         connect()
                         if isCompleted(self.id, band[0]):
                             self.pinBand(self.driver, band[2])
                         close()
 
-                        self.on_update_progressbar.emit(self.id)
+                        connect()
+                        remainings = getRemainings(self.id, time.strftime("%Y-%m-%d"))
+                        close()
+
+                        self.on_update_progressbar.emit(remainings)
+
                 self.driver.close()
                 self.driver.quit()
             self.on_finished_create_chat.emit(self.id)
@@ -328,7 +354,7 @@ class CreateChatThread(QThread):
                     connect()
                     updateBandCompleted(self.id, band_id, 1)
                     close() 
-                    return
+                    raise ChatRestrictionBandException()
                 except TimeoutException: # 비공개 채팅방 만들기 나올때
                     try:
                         driver.find_element_by_xpath('//*[@data-viewname="DBandChattingChannelListView"]/div[1]/div/ul/li[1]/a').click()
@@ -340,7 +366,7 @@ class CreateChatThread(QThread):
                         connect()
                         updateBandCompleted(self.id, band_id, 1)
                         close() 
-                        return
+                        raise PrivateChatRestrictionBandException()
                 search_field.clear()
                 search_field.send_keys(keyword)
                 search_btn = wait.until(
@@ -350,9 +376,19 @@ class CreateChatThread(QThread):
 
                 time.sleep(1) # 검색 완료되는 때를 알아야 함, 우선 1초 기다림
 
+                isEmpty = False
+                try:
+                    driver.find_element_by_xpath(f'//*[@data-viewname="DMemberSelectView"]/div/div/div/div[4]/span')
+                    isEmpty = True
+                except:
+                    logging.exception("")
+                    isEmpty = False
+
+                if isEmpty:
+                    continue
                 try:
                     check_btns = WebDriverWait(driver, 5).until(
-                        EC.presence_of_all_elements_located((By.XPATH, '//*[@data-viewname="DMemberSelectItemView"]/label/span[3]/span[1]/input'))
+                        EC.presence_of_all_elements_located((By.XPATH, '//*[@data-viewname="DMemberSelectItemView"]'))
                     )
                 except:
                     logging.exception("")
@@ -365,9 +401,16 @@ class CreateChatThread(QThread):
                             close()
                         continue
                 for i in range(1, len(check_btns)+1):
-                    check_btn = driver.find_element_by_xpath(f'//*[@id="wrap"]/div[3]/div/section/div/div/div/div[3]/ul/li[{i}]/label/span[3]/span/input')
-                    member = (int(check_btn.get_attribute('value')), self.id, band_id, time.strftime("%Y-%m-%d"))
-                    logging.info(f"현재 멤버 정보 : {str(member)}")
+                    err_cnt = 0
+                    while self.isRunning:
+                        try:
+                            check_btn = driver.find_element_by_xpath(f'//*[@data-viewname="DMemberSelectItemView" and position()={i}]/label/span[3]/span/input')
+                            member = (int(check_btn.get_attribute('value')), self.id, band_id, time.strftime("%Y-%m-%d"))
+                            logging.info(f"현재 멤버 정보 : {str(member)}")
+                            break
+                        except:
+                            err_cnt+=1
+                            logging.exception(f"멤버 정보 가져오는데 문제발생 {err_cnt}")
                     connect()
                     members = getMembers(self.id, band_id)
                     close()
@@ -400,7 +443,7 @@ class CreateChatThread(QThread):
             
             # 초대하기 버튼 누르기
             driver.find_element_by_xpath('//*[@id="wrap"]/div[3]/div/section/div/footer/button[2]').click()
-        except Exception:
+        except:
             logging.exception("")
             raise
 
