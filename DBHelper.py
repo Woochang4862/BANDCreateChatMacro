@@ -1,11 +1,16 @@
 import sqlite3
-import os
+import logging
+
+logger = logging.getLogger()
+FORMAT = "[%(asctime)s][%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
+logger.setLevel(logging.DEBUG)
 
 DB_NAME = "create_chat_macro.db"
 
 TABLE_ACCOUNT = "account"
 ACCOUNT_ID = "_id"
 ACCOUNT_PW = "pw"
+ACCOUNT_COLUMNS = [ACCOUNT_ID, ACCOUNT_PW]
 
 TABLE_BAND = "band"
 BAND_ID = "_id"
@@ -13,6 +18,8 @@ BAND_ACCOUNT_ID = "account_id"
 BAND_NAME = "name"
 BAND_URL = "url"
 BAND_COMPLETED = "completed"
+BAND_LATEST_KEYWORD = "latest_keyword"
+BAND_COLUMNS = [BAND_ID, BAND_ACCOUNT_ID, BAND_NAME, BAND_URL, BAND_COMPLETED, BAND_LATEST_KEYWORD]
 
 TABLE_CHAT_SETTING = "chat_setting"
 CHAT_SETTING_ID = "_id"
@@ -21,6 +28,7 @@ CHAT_SETTING_CHAT_NAME = "chat_name"
 CHAT_SETTING_CHAT_IMAGE = "chat_image"
 CHAT_SETTING_READERS_VIEW = "readers_view"
 CHAT_SETTING_MESSAGE_PERIOD = "message_period"
+CHAT_SETTING_COLUMNS = [CHAT_SETTING_ID, CHAT_SETTING_NAME, CHAT_SETTING_CHAT_NAME, CHAT_SETTING_CHAT_IMAGE, CHAT_SETTING_READERS_VIEW, CHAT_SETTING_MESSAGE_PERIOD]
 
 TABLE_MEMBER = "member"
 MEMBER_ID = "_id"
@@ -28,6 +36,7 @@ MEMBER_ACCOUNT_ID = "account_id"
 MEMBER_BAND_ID = "band_id"
 MEMBER_CHAT_ID = "chat_id"
 MEMBER_DATE = "date"
+MEMBER_COLUMNS = [MEMBER_ID, MEMBER_ACCOUNT_ID, MEMBER_BAND_ID, MEMBER_CHAT_ID, MEMBER_DATE]
 
 TABLE_PREFERENCE = "preference"
 PREFERENCE_KEY = "preference_key"
@@ -45,25 +54,49 @@ def connect():
     global cursor
     con = sqlite3.connect(f"./{DB_NAME}")
     cursor = con.cursor()
+    
+    SCHEMA_ACCOUNT = f"({ACCOUNT_ID} text primary key, {ACCOUNT_PW} text)"
+    SCHEMA_BAND = f"({BAND_ID} integer, {BAND_ACCOUNT_ID} text, {BAND_NAME} text, {BAND_URL} text, {BAND_COMPLETED} integer default 0, {BAND_LATEST_KEYWORD} text, foreign key({BAND_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), primary key({BAND_ID}, {BAND_ACCOUNT_ID}))"
+    SCHEMA_CHAT_SETTING = f"({CHAT_SETTING_ID} integer primary key autoincrement, {CHAT_SETTING_NAME} text, {CHAT_SETTING_CHAT_NAME} text, {CHAT_SETTING_CHAT_IMAGE} text, {CHAT_SETTING_READERS_VIEW} integer default 1, {CHAT_SETTING_MESSAGE_PERIOD} text)"
+    SCHEMA_MEMBER = f"({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_CHAT_ID}, {MEMBER_BAND_ID}))"
+    SCHEMA_PREFERENCE = f"({PREFERENCE_KEY} text primary key, {PREFERENCE_STRING} text, {PREFERENCE_INTEGER} integer, {PREFERENCE_REAL} real)"
 
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_ACCOUNT}({ACCOUNT_ID} text primary key, {ACCOUNT_PW} text)")
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_BAND}({BAND_ID} integer, {BAND_ACCOUNT_ID} text, {BAND_NAME} text, {BAND_URL} text, {BAND_COMPLETED} integer default 0, foreign key({BAND_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), primary key({BAND_ID}, {BAND_ACCOUNT_ID}))")
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_CHAT_SETTING}({CHAT_SETTING_ID} integer primary key autoincrement, {CHAT_SETTING_NAME} text, {CHAT_SETTING_CHAT_NAME} text, {CHAT_SETTING_CHAT_IMAGE} text, {CHAT_SETTING_READERS_VIEW} integer default 1, {CHAT_SETTING_MESSAGE_PERIOD} text)")
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_MEMBER}({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_CHAT_ID}, {MEMBER_BAND_ID}))")
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_PREFERENCE}({PREFERENCE_KEY} text primary key, {PREFERENCE_STRING} text, {PREFERENCE_INTEGER} integer, {PREFERENCE_REAL} real)")
+    CREATE_ACCOUNT = f"CREATE TABLE IF NOT EXISTS \"{TABLE_ACCOUNT}\""+SCHEMA_ACCOUNT
+    CREATE_BAND = f"CREATE TABLE IF NOT EXISTS \"{TABLE_BAND}\""+SCHEMA_BAND
+    CREATE_CHAT_SETTING = f"CREATE TABLE IF NOT EXISTS \"{TABLE_CHAT_SETTING}\""+SCHEMA_CHAT_SETTING
+    CREATE_MEMBER = f"CREATE TABLE IF NOT EXISTS \"{TABLE_MEMBER}\""+SCHEMA_MEMBER
+    CREATE_PREFERENCE = f"CREATE TABLE IF NOT EXISTS \"{TABLE_PREFERENCE}\""+SCHEMA_PREFERENCE
+
+    cursor.execute(CREATE_ACCOUNT)
+    cursor.execute(CREATE_BAND)
+    cursor.execute(CREATE_CHAT_SETTING)
+    cursor.execute(CREATE_MEMBER)
+    cursor.execute(CREATE_PREFERENCE)
     cursor.execute("PRAGMA foreign_keys=1")
-    cursor.execute(f"select * from sqlite_master where type='table' and name='{TABLE_MEMBER}';")
+
+    checkSchema(TABLE_ACCOUNT, SCHEMA_ACCOUNT, ACCOUNT_COLUMNS)
+    checkSchema(TABLE_BAND, SCHEMA_BAND, BAND_COLUMNS)
+    checkSchema(TABLE_CHAT_SETTING, SCHEMA_CHAT_SETTING, CHAT_SETTING_COLUMNS)
+    checkSchema(TABLE_MEMBER, SCHEMA_MEMBER, MEMBER_COLUMNS)
+
+def checkSchema(table_name, table_schema, table_columns):
+    cursor.execute(f"select * from sqlite_master where type='table' and name='{table_name}';")
     result = cursor.fetchall()[0][4]
-    if result.lower() != f"CREATE TABLE \"{TABLE_MEMBER}\"({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_CHAT_ID}, {MEMBER_BAND_ID}))".lower():
+    if result[result.index('('):].lower() != table_schema.lower():
+        print(table_name)
+        cursor.execute("PRAGMA foreign_keys=0")
         cursor.execute("begin")
         try:
-            cursor.execute(f"CREATE TABLE IF NOT EXISTS new_{TABLE_MEMBER}({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_CHAT_ID}, {MEMBER_BAND_ID}))")
-            cursor.execute(f"INSERT INTO new_{TABLE_MEMBER}({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_BAND_ID}, {MEMBER_CHAT_ID}, {MEMBER_DATE}) SELECT * FROM {TABLE_MEMBER}")
-            cursor.execute(f"DROP TABLE {TABLE_MEMBER}")
-            cursor.execute(f"ALTER TABLE new_{TABLE_MEMBER} RENAME TO {TABLE_MEMBER}")
+            cursor.execute(f"CREATE TABLE IF NOT EXISTS new_{table_name}"+table_schema)
+            cursor.execute(f"INSERT INTO new_{table_name}({','.join(table_columns)}) SELECT * FROM {table_name}")
+            cursor.execute(f"DROP TABLE {table_name}")
+            cursor.execute(f"ALTER TABLE new_{table_name} RENAME TO {table_name}")
             con.commit()
-        except sql.Error:
+        except:
+            logging.exception("")
             con.rollback()
+        finally:
+            cursor.execute("PRAGMA foreign_keys=1")
 
 def close():
     global cursor

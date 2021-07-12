@@ -3,8 +3,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
-from CreateChatMacro import *
+from CreateChatMacro import CreateChatThread
 from DBHelper import *
+from LoginMacro import ValidateAccountThread
 
 import logging
 import time

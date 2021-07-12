@@ -1,12 +1,12 @@
 import time
 import logging
-from selenium.webdriver.support.ui import *
-from selenium.common.exceptions import TimeoutException, ElementNotInteractableException, NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException, UnexpectedAlertPresentException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import TimeoutException, NoAlertPresentException, NoAlertPresentException, UnexpectedAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-from DriverProvider import *
-from LoginMacro import *
+from DriverProvider import setup_driver
+from LoginMacro import loginWithEmail, LOGIN_ERROR, LOGIN_SUCCESS, LOGGED_IN
 from DBHelper import *
 
 from PyQt5.QtCore import *
@@ -27,34 +27,28 @@ WAIT_SECONDS = 10
 # pw = 'asdf0706'
 
 keywords = [
-    '강','고','공','곽','구','권','금','기','김','나',
-    '남','노','도','라','류','마','맹','문','민','박',
-    '반','방','배','백','사','서','설','성','소','손',
-    '송','신','심','아','안','양','어','엄','여','연',
-    '염','오','우','원','유','윤','이','임','장','전',
-    '정','조','주','지','진','차','채','천','철','청',
-    '최','추','탁','표','피','하','한','함','허','현',
-    '호','홍','황','건','경','광','근','금','기','나',
-    '남','노','대','덕','도','동','두','명','미','민',
-    '범','병','보','봉','삼','상','서','석','선','성',
-    '소','수','숙','순','승','시','연','영','오','옥',
-    '완','용','우','원','유','윤','은','의','인','일',
-    '재','정','종','주','준','중','지','진','찬','창',
-    '철','태','하','한','해','현','형','혜','호','홍',
-    '화','효','희','간','간','갈','감','갑','개','거',
-    '건','검','겨','견','겸','경','게','계','골','곰',
-    '관','광','까','깜','꼬','꽃','귀','교','국','꽁',
-    '궁','꿍','규','그','근','글','금','기','꾸','꿀',
-    '꿈','꿍','난','날','낭','내','너','넌','네','녹',
-    '농','누','눈','늘','니','다','단','달','대','댄',
-    '데','돈','돌','동','다','딸','또','똘','똥','달',
-    '당','딸','땅','두','들','랄','러','레','로','롤',
-    '룰','루','막','만','말','맛','망','매','맥','멋',
-    '멍','멜','모','몽','무','물','미','벌','베','병',
-    '보','복','부','분','불','붉','블','비','삐','생',
-    '석','수','승','세','시','실','싸','야','언','연',
-    '영','예','용','울','율','은','재','제','짱','철',
-    '칠','커','태','토','통','혜','휴','희'
+    '강','고','공','곽','구','권','김','라','류','마',
+    '맹','문','박','반','방','배','백','사','설','손',
+    '송','신','심','아','안','양','어','엄','여','염',
+    '이','임','장','전','조','차','채','천','청','최',
+    '추','탁','표','피','함','허','황','나','남','노',
+    '덕','도','명','민','범','봉','삼','상','서','선',
+    '성','소','숙','순','오','옥','완','우','원','유',
+    '윤','의','인','일','정','종','주','준','중','지',
+    '진','찬','창','하','한','해','현','형','호','홍',
+    '화','효','간','갈','감','갑','개','거','건','검',
+    '겨','견','겸','경','게','계','골','곰','관','광',
+    '까','깜','꼬','꽃','귀','교','국','꽁','궁','규',
+    '그','근','글','금','기','꾸','꿀','꿈','꿍','난',
+    '날','낭','내','너','넌','네','녹','농','누','눈',
+    '늘','니','단','대','댄','데','돈','돌','동','다',
+    '또','똘','똥','달','당','딸','땅','두','들','랄',
+    '러','레','로','롤','룰','루','막','만','말','맛',
+    '망','매','맥','멋','멍','멜','모','몽','무','물',
+    '미','벌','베','병','보','복','부','분','불','붉',
+    '블','비','삐','생','석','수','승','세','시','실',
+    '싸','야','언','연','영','예','용','울','율','은',
+    '재','제','짱','철','칠','커','태','토','통','혜'
 ]
 
 class MemberExceededException(Exception):
@@ -136,7 +130,6 @@ class CreateChatThread(QThread):
                             self.on_finished_create_chat.emit(self.id)
                             return
 
-                        
                         connect()
                         if isCompleted(self.id, band[0]):
                             self.pinBand(self.driver, band[2])

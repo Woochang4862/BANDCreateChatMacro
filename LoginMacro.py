@@ -5,7 +5,7 @@ from PyQt5.QtGui import *
 import time
 import logging
 from selenium import webdriver
-from selenium.webdriver.support.ui import *
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 import pyperclip
 from selenium.common.exceptions import NoSuchElementException, NoAlertPresentException, NoAlertPresentException, WebDriverException
