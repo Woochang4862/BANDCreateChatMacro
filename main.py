@@ -351,9 +351,9 @@ class MyWindow(QMainWindow, form_class):
         self.bands = getBands(account_id)
         close()
 
-        for (band_id, account_id, name, url, completed) in self.bands:
+        for (band_id, account_id, name, url, completed, latest_keyword) in self.bands:
             band_node = QTreeWidgetItem(self.member_tree)
-            band_node.setText(0,f"{name}({'완료' if completed==1 else '미완료'})")
+            band_node.setText(0,f"{name}({'완료' if completed==1 else f'미완료({latest_keyword})'})")
             connect()
             members = getMembers(account_id, band_id)
             close()

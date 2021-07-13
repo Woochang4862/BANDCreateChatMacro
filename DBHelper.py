@@ -7,6 +7,8 @@ logger.setLevel(logging.DEBUG)
 
 DB_NAME = "create_chat_macro.db"
 
+CURRENT_VERSION = "0.1"
+
 TABLE_ACCOUNT = "account"
 ACCOUNT_ID = "_id"
 ACCOUNT_PW = "pw"
@@ -67,6 +69,26 @@ def connect():
     CREATE_MEMBER = f"CREATE TABLE IF NOT EXISTS \"{TABLE_MEMBER}\""+SCHEMA_MEMBER
     CREATE_PREFERENCE = f"CREATE TABLE IF NOT EXISTS \"{TABLE_PREFERENCE}\""+SCHEMA_PREFERENCE
 
+    cursor.execute(f"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_versions'")
+    if cursor.fetchone()[0] == 0: # 버전 기능이 들어가기 전 (완전히 처음이거나 7/13일 전쯤...)
+        cursor.execute(f'CREATE TABLE schema_versions(version text)')
+        cursor.execute(f'INSERT INTO schema_versions(version) VALUES({CURRENT_VERSION})')
+        con.commit()
+
+        cursor.execute("begin")
+        try:
+            cursor.execute(f"ALTER TABLE {TABLE_BAND} ADD COLUMN {BAND_LATEST_KEYWORD} text")
+            cursor.execute(f"UPDATE schema_versions SET version = '0.1'")
+            con.commit()
+        except:
+            logging.exception("")
+            con.rollback()
+
+        checkSchema(TABLE_ACCOUNT, SCHEMA_ACCOUNT, ACCOUNT_COLUMNS)
+        checkSchema(TABLE_BAND, SCHEMA_BAND, BAND_COLUMNS)
+        checkSchema(TABLE_CHAT_SETTING, SCHEMA_CHAT_SETTING, CHAT_SETTING_COLUMNS)
+        checkSchema(TABLE_MEMBER, SCHEMA_MEMBER, MEMBER_COLUMNS)
+
     cursor.execute(CREATE_ACCOUNT)
     cursor.execute(CREATE_BAND)
     cursor.execute(CREATE_CHAT_SETTING)
@@ -74,10 +96,13 @@ def connect():
     cursor.execute(CREATE_PREFERENCE)
     cursor.execute("PRAGMA foreign_keys=1")
 
-    checkSchema(TABLE_ACCOUNT, SCHEMA_ACCOUNT, ACCOUNT_COLUMNS)
-    checkSchema(TABLE_BAND, SCHEMA_BAND, BAND_COLUMNS)
-    checkSchema(TABLE_CHAT_SETTING, SCHEMA_CHAT_SETTING, CHAT_SETTING_COLUMNS)
-    checkSchema(TABLE_MEMBER, SCHEMA_MEMBER, MEMBER_COLUMNS)
+    # 버전별 변경 사항 적용해줌 컬럼 -> 속성
+    # if getDatabaseVersion() == "0.1":
+    #     pass
+
+def getDatabaseVersion():
+    cursor.execute(f"select max(version) from schema_versions")
+    return cursor.fetchone()[0]
 
 def checkSchema(table_name, table_schema, table_columns):
     cursor.execute(f"select * from sqlite_master where type='table' and name='{table_name}';")
@@ -99,12 +124,8 @@ def checkSchema(table_name, table_schema, table_columns):
             cursor.execute("PRAGMA foreign_keys=1")
 
 def close():
-    global cursor
-    global con
     cursor.close()
-    del cursor
     con.close()
-    del con
 
 def putStringExtra(key, extra):
     cursor.execute(f"INSERT OR REPLACE INTO {TABLE_PREFERENCE}({PREFERENCE_KEY}, {PREFERENCE_STRING}) VALUES ('{key}', '{extra}')")
@@ -207,8 +228,16 @@ def getChatSetting(setting_id):
     return cursor.fetchall()[0]
 
 def getNumberOfMembers(account_id, band_id):
-    cursor.execute(f"SELECT COUNT(*) FROM {TABLE_MEMBER} WHERE {BAND_ID} = {band_id} AND {BAND_ACCOUNT_ID} = '{account_id}'")
+    cursor.execute(f"SELECT COUNT(*) FROM {TABLE_MEMBER} WHERE {MEMBER_BAND_ID} = {band_id} AND {MEMBER_ACCOUNT_ID} = '{account_id}'")
     return cursor.fetchone()[0]
+
+def getLatestKeyword(account_id, band_id):
+    cursor.execute(f"SELECT {BAND_LATEST_KEYWORD} FROM {TABLE_BAND} WHERE {BAND_ID} = {band_id} AND {BAND_ACCOUNT_ID} = '{account_id}'")
+    return cursor.fetchone()[0]
+
+def updateLatestKeyword(account_id, band_id, keyword):
+    cursor.execute(f"UPDATE {TABLE_BAND} SET {BAND_LATEST_KEYWORD} = '{keyword}' WHERE {BAND_ACCOUNT_ID} = '{account_id}' AND {BAND_ID} = {band_id};")
+    con.commit()
 
 connect()
 #updateBandCompleted('hungsung0231@gmail.com',71757012,0)
@@ -217,4 +246,5 @@ connect()
 #addChatSetting('테스트 세팅', '테스트', r'C:\Users\wooch\OneDrive\바탕 화면\sample.jpg', 1 if True else 0, 'min')
 #print(getRemainings('chad0706@naver.com', '2021-06-29'))
 #addMember(74767098, 'hungsung0232@gmail.com', 72837984, 'CZmZ77', '2021-06-30')
+updateLatestKeyword('hungsung0231@gmail.com', 72038937, '강')
 close()

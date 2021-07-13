@@ -132,6 +132,7 @@ class CreateChatThread(QThread):
 
                         connect()
                         if isCompleted(self.id, band[0]):
+                            nextBand = True
                             self.pinBand(self.driver, band[2])
                         close()
 
@@ -336,9 +337,19 @@ class CreateChatThread(QThread):
                 logger.exception(f"'새채팅'버튼 누를때 문제발생 {err_cnt}")
         
         member_to_add = []
+        connect()
+        k = getLatestKeyword(self.id, band_id)
+        close()
+        _keywords = keywords
+        if not k is None:
+            _keywords = keywords[keywords.index(k):]
+        print(_keywords)
         try:
-            for keyword in keywords:
+            for keyword in _keywords:
                 logging.info(keyword+" 작업중")
+                connect()
+                updateLatestKeyword(self.id, band_id, keyword)
+                close()
                 try:
                     search_field = wait.until(
                         EC.presence_of_element_located((By.XPATH, '//*[@class="inputWrap"]/input'))
@@ -450,6 +461,11 @@ class CreateChatThread(QThread):
             raise MemberExceededException()
         except AttributeError:
             raise MemberExceededException()
+        except TimeoutException:
+            connect()
+            updateBandCompleted(self.id, band_id, 1)
+            close()
+            return
         except Exception: # 여기에서 마지막까지 갔을때 멈춤 #436 왜 실행 안됨?
             logging.exception("")
             raise
