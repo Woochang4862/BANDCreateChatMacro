@@ -6,6 +6,7 @@ from PyQt5 import uic
 from CreateChatMacro import CreateChatThread
 from DBHelper import *
 from LoginMacro import ValidateAccountThread
+from DriverProvider import setup_driver
 
 import logging
 import time
@@ -36,6 +37,7 @@ class MyWindow(QMainWindow, form_class):
     """
     accounts = []
     settings = []
+    isRunning = False
     """
     ::END::
     """
@@ -82,21 +84,23 @@ class MyWindow(QMainWindow, form_class):
     ::START::
     """
     def on_chrome_route_edited(self, text):
+        if self.isRunning:
+            return
         connect()
         putStringExtra(KEY_CHROME_ROUTE, text)
         close()
 
     def on_validation_chrome_clicked(self):
-        logging.info("크롬 확인", "크롬 경로 확인 중 ...")
+        logging.info("크롬 확인 : 크롬 경로 확인 중 ...")
         try:
             driver = setup_driver(self.chrome_edit.text().strip())
             driver.close()
             driver.quit()
-            logging.info("크롬 확인", "올바른 크롬 경로")
+            logging.info("크롬 확인 : 올바른 크롬 경로")
             QMessageBox.information(self.centralwidget, '크롬 경로 확인', '올바른 크롬 경로입니다', QMessageBox.Ok, QMessageBox.Ok)
         except:
             logging.exception("")
-            logging.info("크롬 확인", "올바르지 않은 크롬 경로")
+            logging.info("크롬 확인 : 올바르지 않은 크롬 경로")
             QMessageBox.critical(self.centralwidget, '크롬 경로 오류', '크롬 경로를 확인해 주세요', QMessageBox.Ok, QMessageBox.Ok)
     """
     ::END::
@@ -122,6 +126,8 @@ class MyWindow(QMainWindow, form_class):
 
     def on_validation_account_clicked(self):
         logging.info("계정 확인")
+        if self.isRunning:
+            return
         id = self.id_edit.text().strip()
         pw = self.pw_edit.text().strip()
 
@@ -135,6 +141,8 @@ class MyWindow(QMainWindow, form_class):
 
     def on_add_account_clicked(self):
         logging.info("계정 추가")
+        if self.isRunning:
+            return
         id = self.id_edit.text().strip()
         pw = self.pw_edit.text().strip()
         
@@ -160,8 +168,9 @@ class MyWindow(QMainWindow, form_class):
 
     def on_delete_account_clicked(self):
         logging.info("계정 삭제")
+        if self.isRunning:
+            return
         
-        deletedAccounts = 0
         for _range in self.account_table.selectedRanges():
             topRow = _range.topRow()
             bottomRow = _range.bottomRow()
@@ -256,6 +265,8 @@ class MyWindow(QMainWindow, form_class):
 
     def on_add_chat_setting_clicked(self):
         logging.info("설정 추가")
+        if self.isRunning:
+            return
 
         mp = ""
 
@@ -282,6 +293,9 @@ class MyWindow(QMainWindow, form_class):
         self.bindToChatSettingComboBox()
 
     def on_delete_chat_setting_clicked(self):
+        logging.info("설정 삭제")
+        if self.isRunning:
+            return
         deletedSettings = 0
         for _range in self.chat_setting_table.selectedRanges():
             topRow = _range.topRow()
@@ -340,6 +354,8 @@ class MyWindow(QMainWindow, form_class):
     ::START::
     """
     def on_account_combobox_changed(self, account_id):
+        if self.isRunning:
+            return
         logging.info(f"선택된 아이디 : {account_id}")
 
         self.member_tree.clear()
@@ -373,6 +389,8 @@ class MyWindow(QMainWindow, form_class):
     ::START::
     """
     def on_tab_changed(self, index):
+        if self.isRunning:
+            return
         logging.info(f"선택된 탭 : {index}")
         if index == 0:
             connect()
@@ -404,6 +422,13 @@ class MyWindow(QMainWindow, form_class):
     def on_run_clicked(self):
         logging.info("실행")
 
+        logging.info(f"현재 실행 환경 (계정 : {self.accounts}, 설정 : {self.settings[self.setting_combobox.currentIndex()-1]})")
+
+        image_path = self.settings[self.setting_combobox.currentIndex()-1][3]
+        if not os.path.isfile(image_path):
+            QMessageBox.critical(self.centralwidget, '채팅 이미지 경로 오류', '채팅 이미지 경로를 확인해 주세요', QMessageBox.Ok, QMessageBox.Ok)
+            return
+
         self.toggleRunButton(False)
         self.toggleStopButton(True)
         
@@ -426,6 +451,7 @@ class MyWindow(QMainWindow, form_class):
             self.createChatThread.path = self.chrome_edit.text().strip()
             self.createChatThread.chat_setting_id = self.settings[self.setting_combobox.currentIndex()-1][0]
             self.createChatThread.start()
+            self.current_id_label.setText(f"현재 아이디 : {id}")
         
     def on_stop_clicked(self):
         logging.info("중단")
@@ -475,6 +501,7 @@ class MyWindow(QMainWindow, form_class):
             self.createChatThread.path = self.chrome_edit.text().strip()
             self.createChatThread.chat_setting_id = self.settings[self.setting_combobox.currentIndex()-1][0]
             self.createChatThread.start()
+            self.current_id_label.setText(f"현재 아이디 : {id}")
         else:
             self.on_stop_clicked()
             self.validateRunButton()
@@ -485,7 +512,6 @@ class MyWindow(QMainWindow, form_class):
         if msg == "한도 수 초과":
             self.on_stop_clicked()
             self.validateRunButton()
-
     """
     :::END::
     """

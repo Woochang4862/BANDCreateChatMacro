@@ -71,6 +71,7 @@ class CreateChatThread(QThread):
     pw = ''
     chat_setting_id = 0
 
+    
     on_finished_create_chat = pyqtSignal(str)
     on_update_progressbar = pyqtSignal(int)
     on_error_create_chat = pyqtSignal(str, str) # 발생한 계정, 오류 메시지
@@ -343,13 +344,12 @@ class CreateChatThread(QThread):
         _keywords = keywords
         if not k is None:
             _keywords = keywords[keywords.index(k):]
-        print(_keywords)
+        
+        latest_keyword = k
         try:
             for keyword in _keywords:
                 logging.info(keyword+" 작업중")
-                connect()
-                updateLatestKeyword(self.id, band_id, keyword)
-                close()
+                latest_keyword = keyword
                 try:
                     search_field = wait.until(
                         EC.presence_of_element_located((By.XPATH, '//*[@class="inputWrap"]/input'))
@@ -478,6 +478,10 @@ class CreateChatThread(QThread):
             connect()
             addMember(member[0], member[1], member[2], chat_id, member[3])
             close()
+
+        connect()
+        updateLatestKeyword(self.id, band_id, latest_keyword)
+        close()
 
         self.applyChatOption(driver=driver, chat_setting_id=self.chat_setting_id, onlyAction=True)
 
