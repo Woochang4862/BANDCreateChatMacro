@@ -1,8 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 import chromedriver_autoinstaller
-from webdriver_manager.chrome import ChromeDriverManager
 import subprocess
 import platform
 import requests
@@ -68,11 +66,18 @@ def download_chrome_driver(chrome_version):
     # delete the zip file downloaded above
     os.remove(latest_driver_zip)
 
-def setup_driver(path):
+def setup_driver(ip):
     try:
-        open_chrome_with_debug_mode(path)
+        #open_chrome_with_debug_mode(path)
         co = Options()
-        co.add_experimental_option('debuggerAddress', '127.0.0.1:9222')
+        if ip:
+            PORT = "3128"
+            PROXY = f"{ip}:{PORT}"
+            co.add_argument(f'--proxy-server=http://{PROXY}')
+        co.add_argument('--user-data-dir=C:/ChromeTEMP')
+        co.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
+        co.add_argument("app-version=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
+        #co.debugger_address='127.0.0.1:9222'
         if getattr(sys, 'frozen', False):   
             chromedriver_path = os.path.join(sys._MEIPASS, "chromedriver.exe")  
             driver = webdriver.Chrome(chromedriver_path, options=co)

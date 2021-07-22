@@ -6,7 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from DriverProvider import setup_driver
-from LoginMacro import loginWithEmail, LOGIN_ERROR, LOGIN_SUCCESS, LOGGED_IN
+from LoginMacro import LOGIN_IDENTIFICATION, loginWithEmail, LOGIN_ERROR, LOGIN_SUCCESS, LOGGED_IN
 from DBHelper import *
 
 from PyQt5.QtCore import *
@@ -69,6 +69,7 @@ class CreateChatThread(QThread):
     path = ''
     id = ''
     pw = ''
+    ip = ''
     chat_setting_id = 0
 
     
@@ -85,7 +86,7 @@ class CreateChatThread(QThread):
         close()
         try:
             if remainings != 0:
-                self.driver = setup_driver(self.path)
+                self.driver = setup_driver(self.ip)
                 result = loginWithEmail(self.driver, self.id, self.pw)
                 if result == LOGIN_SUCCESS or result == LOGGED_IN:
                     pinned_bands = self.getPinnedBands(self.driver)               
@@ -142,7 +143,6 @@ class CreateChatThread(QThread):
                         close()
 
                         self.on_update_progressbar.emit(remainings)
-
                 self.driver.close()
                 self.driver.quit()
             self.on_finished_create_chat.emit(self.id)

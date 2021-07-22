@@ -27,6 +27,7 @@ class MyWindow(QMainWindow, form_class):
     ::START::
     """
     state_validation_finished = pyqtSignal()
+    state_identification_finished = pyqtSignal()
     """
     ::END::
     """
@@ -66,6 +67,7 @@ class MyWindow(QMainWindow, form_class):
         self.validateAccountThread.state_login_fail.connect(self.state_login_fail)
         self.validateAccountThread.state_login_error.connect(self.state_login_error)
         self.validateAccountThread.state_login_validation.connect(self.state_login_validation)
+        self.validateAccountThread.state_login_identification.connect(self.state_login_identification)
         """
         ::END::
         """
@@ -73,38 +75,37 @@ class MyWindow(QMainWindow, form_class):
         connect()
         self.accounts = getAccounts()
         self.settings = getChatSettings()
-        self.chrome_edit.setText(getStringExtra(KEY_CHROME_ROUTE, ""))
         close()
         self.bindToAccountTable()
         self.bindToChatSettingTable()
         self.bindToChatSettingComboBox()
 
-    """
-    크롬 경로 설정
-    ::START::
-    """
-    def on_chrome_route_edited(self, text):
-        if self.isRunning:
-            return
-        connect()
-        putStringExtra(KEY_CHROME_ROUTE, text)
-        close()
+    # """
+    # 크롬 경로 설정
+    # ::START::
+    # """
+    # def on_chrome_route_edited(self, text):
+    #     if self.isRunning:
+    #         return
+    #     connect()
+    #     putStringExtra(KEY_CHROME_ROUTE, text)
+    #     close()
 
-    def on_validation_chrome_clicked(self):
-        logging.info("크롬 확인 : 크롬 경로 확인 중 ...")
-        try:
-            driver = setup_driver(self.chrome_edit.text().strip())
-            driver.close()
-            driver.quit()
-            logging.info("크롬 확인 : 올바른 크롬 경로")
-            QMessageBox.information(self.centralwidget, '크롬 경로 확인', '올바른 크롬 경로입니다', QMessageBox.Ok, QMessageBox.Ok)
-        except:
-            logging.exception("")
-            logging.info("크롬 확인 : 올바르지 않은 크롬 경로")
-            QMessageBox.critical(self.centralwidget, '크롬 경로 오류', '크롬 경로를 확인해 주세요', QMessageBox.Ok, QMessageBox.Ok)
-    """
-    ::END::
-    """
+    # def on_validation_chrome_clicked(self):
+    #     logging.info("크롬 확인 : 크롬 경로 확인 중 ...")
+    #     try:
+    #         driver = setup_driver(self.chrome_edit.text().strip())
+    #         driver.close()
+    #         driver.quit()
+    #         logging.info("크롬 확인 : 올바른 크롬 경로")
+    #         QMessageBox.information(self.centralwidget, '크롬 경로 확인', '올바른 크롬 경로입니다', QMessageBox.Ok, QMessageBox.Ok)
+    #     except:
+    #         logging.exception("")
+    #         logging.info("크롬 확인 : 올바르지 않은 크롬 경로")
+    #         QMessageBox.critical(self.centralwidget, '크롬 경로 오류', '크롬 경로를 확인해 주세요', QMessageBox.Ok, QMessageBox.Ok)
+    # """
+    # ::END::
+    # """
 
     """
     계정 화면 설정
@@ -115,6 +116,10 @@ class MyWindow(QMainWindow, form_class):
         self.toggleAddButton(False)
 
     def on_pw_changed(self, text):
+        logging.info(text)
+        self.toggleAddButton(False)
+    
+    def on_ip_changed(self, text):
         logging.info(text)
         self.toggleAddButton(False)
 
@@ -130,14 +135,15 @@ class MyWindow(QMainWindow, form_class):
             return
         id = self.id_edit.text().strip()
         pw = self.pw_edit.text().strip()
+        ip = self.ip_edit.text().strip()
 
         if id != '' and pw != '':
             self.validateAccountThread.id = id
             self.validateAccountThread.pw = pw
-            self.validateAccountThread.path = self.chrome_edit.text().strip()
+            self.validateAccountThread.ip = ip
             self.validateAccountThread.start()
         else:
-            logging.info("계정 확인", "이메일 혹은 비밀번호가 비어 있음")
+            logging.info("계정 확인 : 이메일 혹은 비밀번호가 비어 있음")
 
     def on_add_account_clicked(self):
         logging.info("계정 추가")
@@ -145,14 +151,15 @@ class MyWindow(QMainWindow, form_class):
             return
         id = self.id_edit.text().strip()
         pw = self.pw_edit.text().strip()
+        ip = self.ip_edit.text().strip()
         
-        for _id, _ in self.accounts:
+        for _id, _, _ in self.accounts:
             if _id == id:
-                logging.info("계정 추가", "동일한 이메일이 이미 존재함")
+                logging.info("계정 추가 : 동일한 이메일이 이미 존재함")
                 return
 
         connect()
-        addAccount(id, pw)
+        addAccount(id, pw, ip)
         self.accounts = getAccounts()
         close()
 
@@ -161,6 +168,7 @@ class MyWindow(QMainWindow, form_class):
 
         self.id_edit.clear()
         self.pw_edit.clear()
+        self.ip_edit.clear()
 
         self.toggleAddButton(False)
 
@@ -193,14 +201,15 @@ class MyWindow(QMainWindow, form_class):
 
     def bindToAccountTable(self):
         self.account_table.clear()
-        self.account_table.setColumnCount(2)
+        self.account_table.setColumnCount(3)
         self.account_table.setRowCount(len(self.accounts))
-        self.account_table.setHorizontalHeaderLabels(["이메일", "비밀번호"])
+        self.account_table.setHorizontalHeaderLabels(["이메일", "비밀번호", "아이피"])
 
-        for idx, (id, pw) in enumerate(self.accounts): # 사용자정의 item 과 checkbox widget 을, 동일한 cell 에 넣어서 , 추후 정렬 가능하게 한다. 
+        for idx, (id, pw, ip) in enumerate(self.accounts): # 사용자정의 item 과 checkbox widget 을, 동일한 cell 에 넣어서 , 추후 정렬 가능하게 한다. 
 
             self.account_table.setItem(idx, 0, QTableWidgetItem(id)) 
             self.account_table.setItem(idx, 1, QTableWidgetItem(pw)) 
+            self.account_table.setItem(idx, 2, QTableWidgetItem(ip)) 
 
         self.account_table.setSortingEnabled(False)  # 정렬기능
         self.account_table.resizeRowsToContents()
@@ -212,7 +221,7 @@ class MyWindow(QMainWindow, form_class):
         self.account_combobox.clear()
         self.account_combobox.addItem("계정")
 
-        for (id, pw) in self.accounts:
+        for (id, _, _) in self.accounts:
             self.account_combobox.addItem(id)
 
     @pyqtSlot()
@@ -244,6 +253,14 @@ class MyWindow(QMainWindow, form_class):
         msgBox.setStandardButtons(QMessageBox.Ok)
         msgBox.buttonClicked.connect(lambda _ : self.state_validation_finished.emit())
         msgBox.exec()
+
+    @pyqtSlot()
+    def state_login_identification(self):
+        new_pw, ok = QInputDialog.getText(self, 'IP 변경 감지됨', '본인확인 후 변경된 비밀번호를 입력해주세요')
+
+        if ok:
+            self.pw_edit.setText(new_pw)
+            self.state_identification_finished.emit()
     """
     ::END::
     """
@@ -310,7 +327,7 @@ class MyWindow(QMainWindow, form_class):
                 deleteChatSetting(id)
                 close()
 
-        logging.info("계정 삭제", f"{deletedSettings} 개를 삭제 시킴")
+        logging.info(f"계정 삭제 : {deletedSettings} 개를 삭제 시킴")
 
         connect()
         self.settings = getChatSettings()
@@ -436,7 +453,7 @@ class MyWindow(QMainWindow, form_class):
         self.isRunning = True
 
         if self.i < len(self.accounts) and self.isRunning:
-            id,pw = self.accounts[self.i]
+            id,pw,ip = self.accounts[self.i]
             self.i+=1
             self.progressBar.reset()
             connect()
@@ -448,10 +465,11 @@ class MyWindow(QMainWindow, form_class):
             self.createChatThread.on_error_create_chat.connect(self.on_error_create_chat)
             self.createChatThread.id = id
             self.createChatThread.pw = pw
-            self.createChatThread.path = self.chrome_edit.text().strip()
+            self.createChatThread.ip = ip
             self.createChatThread.chat_setting_id = self.settings[self.setting_combobox.currentIndex()-1][0]
             self.createChatThread.start()
             self.current_id_label.setText(f"현재 아이디 : {id}")
+            self.current_ip_label.setText(f"현재 아이피 : {ip}") #현재 아이피 주소 바꿈
         
     def on_stop_clicked(self):
         logging.info("중단")
@@ -484,7 +502,7 @@ class MyWindow(QMainWindow, form_class):
 
     def on_finished_create_chat(self, id):
         if self.i < len(self.accounts) and self.isRunning:
-            id,pw = self.accounts[self.i]
+            id,pw,ip = self.accounts[self.i]
             self.i+=1
             if self.createChatThread.isRunning:
                 self.createChatThread.stop()
@@ -498,10 +516,11 @@ class MyWindow(QMainWindow, form_class):
             self.createChatThread.on_error_create_chat.connect(self.on_error_create_chat)
             self.createChatThread.id = id
             self.createChatThread.pw = pw
-            self.createChatThread.path = self.chrome_edit.text().strip()
+            self.createChatThread.ip = ip
             self.createChatThread.chat_setting_id = self.settings[self.setting_combobox.currentIndex()-1][0]
             self.createChatThread.start()
             self.current_id_label.setText(f"현재 아이디 : {id}")
+            self.current_ip_label.setText(f"현재 아이피 : {ip}") #현재 아이피 주소 바꿈
         else:
             self.on_stop_clicked()
             self.validateRunButton()

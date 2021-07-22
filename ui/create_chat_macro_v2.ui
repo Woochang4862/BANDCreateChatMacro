@@ -19,39 +19,6 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QGroupBox" name="chrome_group">
-      <property name="title">
-       <string>크롬</string>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_3">
-       <item>
-        <layout class="QFormLayout" name="formLayout">
-         <item row="0" column="0">
-          <widget class="QLabel" name="chrome_label">
-           <property name="text">
-            <string>경로</string>
-           </property>
-           <property name="buddy">
-            <cstring>chrome_edit</cstring>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLineEdit" name="chrome_edit"/>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QPushButton" name="validation_chrome_btn">
-         <property name="text">
-          <string>확인</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="enabled">
        <bool>true</bool>
@@ -105,7 +72,7 @@
               <item row="0" column="1">
                <widget class="QLineEdit" name="id_edit">
                 <property name="placeholderText">
-                 <string>아이디</string>
+                 <string>이메일</string>
                 </property>
                </widget>
               </item>
@@ -116,6 +83,23 @@
                 </property>
                 <property name="placeholderText">
                  <string>비밀번호</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_ip">
+                <property name="text">
+                 <string>아이피</string>
+                </property>
+                <property name="buddy">
+                 <cstring>ip_edit</cstring>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLineEdit" name="ip_edit">
+                <property name="placeholderText">
+                 <string>아이피</string>
                 </property>
                </widget>
               </item>
@@ -143,6 +127,13 @@
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QPushButton" name="account_delete_btn">
+                <property name="text">
+                 <string>삭제</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </item>
            </layout>
@@ -151,12 +142,15 @@
         </item>
         <item>
          <widget class="QTableWidget" name="account_table">
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
           <property name="alternatingRowColors">
            <bool>true</bool>
           </property>
           <column>
            <property name="text">
-            <string>아이디</string>
+            <string>이메일</string>
            </property>
           </column>
           <column>
@@ -164,13 +158,11 @@
             <string>비밀번호</string>
            </property>
           </column>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="account_delete_btn">
-          <property name="text">
-           <string>삭제</string>
-          </property>
+          <column>
+           <property name="text">
+            <string>아이피</string>
+           </property>
+          </column>
          </widget>
         </item>
        </layout>
@@ -310,14 +302,28 @@
          </layout>
         </item>
         <item>
-         <widget class="QPushButton" name="add_chat_setting_btn">
-          <property name="text">
-           <string>추가</string>
-          </property>
-         </widget>
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <widget class="QPushButton" name="add_chat_setting_btn">
+            <property name="text">
+             <string>추가</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="chat_setting_delete_btn">
+            <property name="text">
+             <string>삭제</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <widget class="QTableWidget" name="chat_setting_table">
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
           <attribute name="horizontalHeaderDefaultSectionSize">
            <number>150</number>
           </attribute>
@@ -351,13 +357,6 @@
             <string>보관기간</string>
            </property>
           </column>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="chat_setting_delete_btn">
-          <property name="text">
-           <string>삭제</string>
-          </property>
          </widget>
         </item>
        </layout>
@@ -430,11 +429,22 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="current_id_label">
-        <property name="text">
-         <string>현재 아이디 : </string>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QLabel" name="current_id_label">
+          <property name="text">
+           <string>현재 아이디 : </string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="current_ip_label">
+          <property name="text">
+           <string>현재 아이피 주소 : </string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -604,22 +614,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>validation_chrome_btn</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>on_validation_chrome_clicked()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>804</x>
-     <y>53</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>819</x>
-     <y>499</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>validate_btn</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -658,8 +652,8 @@
    <slot>on_delete_account_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>444</x>
-     <y>529</y>
+     <x>798</x>
+     <y>183</y>
     </hint>
     <hint type="destinationlabel">
      <x>823</x>
@@ -674,8 +668,8 @@
    <slot>on_delete_chat_setting_clicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>573</x>
-     <y>529</y>
+     <x>584</x>
+     <y>509</y>
     </hint>
     <hint type="destinationlabel">
      <x>820</x>
@@ -690,8 +684,8 @@
    <slot>on_chat_setting_combobox_changed(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>58</x>
-     <y>560</y>
+     <x>68</x>
+     <y>549</y>
     </hint>
     <hint type="destinationlabel">
      <x>909</x>
@@ -700,18 +694,18 @@
    </hints>
   </connection>
   <connection>
-   <sender>chrome_edit</sender>
-   <signal>textEdited(QString)</signal>
+   <sender>ip_edit</sender>
+   <signal>textChanged(QString)</signal>
    <receiver>MainWindow</receiver>
-   <slot>on_chrome_route_edited(QString)</slot>
+   <slot>on_ip_changed(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>216</x>
-     <y>43</y>
+     <x>229</x>
+     <y>165</y>
     </hint>
     <hint type="destinationlabel">
-     <x>749</x>
-     <y>-9</y>
+     <x>828</x>
+     <y>152</y>
     </hint>
    </hints>
   </connection>
@@ -734,5 +728,6 @@
   <slot>on_delete_chat_setting_clicked()</slot>
   <slot>on_chat_setting_combobox_changed(QString)</slot>
   <slot>on_chrome_route_edited(QString)</slot>
+  <slot>on_ip_changed(QString)</slot>
  </slots>
 </ui>

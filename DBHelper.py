@@ -7,12 +7,17 @@ logger.setLevel(logging.DEBUG)
 
 DB_NAME = "create_chat_macro.db"
 
-CURRENT_VERSION = "0.1"
+CURRENT_VERSION = "0.2"
+"""
+#0.2
+계정 테이블에 아이피 추가
+"""
 
 TABLE_ACCOUNT = "account"
 ACCOUNT_ID = "_id"
 ACCOUNT_PW = "pw"
-ACCOUNT_COLUMNS = [ACCOUNT_ID, ACCOUNT_PW]
+ACCOUNT_IP = "ip"
+ACCOUNT_COLUMNS = [ACCOUNT_ID, ACCOUNT_PW, ACCOUNT_IP]
 
 TABLE_BAND = "band"
 BAND_ID = "_id"
@@ -57,7 +62,7 @@ def connect():
     con = sqlite3.connect(f"./{DB_NAME}")
     cursor = con.cursor()
     
-    SCHEMA_ACCOUNT = f"({ACCOUNT_ID} text primary key, {ACCOUNT_PW} text)"
+    SCHEMA_ACCOUNT = f"({ACCOUNT_ID} text primary key, {ACCOUNT_PW} text, {ACCOUNT_IP} text)"
     SCHEMA_BAND = f"({BAND_ID} integer, {BAND_ACCOUNT_ID} text, {BAND_NAME} text, {BAND_URL} text, {BAND_COMPLETED} integer default 0, {BAND_LATEST_KEYWORD} text, foreign key({BAND_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), primary key({BAND_ID}, {BAND_ACCOUNT_ID}))"
     SCHEMA_CHAT_SETTING = f"({CHAT_SETTING_ID} integer primary key autoincrement, {CHAT_SETTING_NAME} text, {CHAT_SETTING_CHAT_NAME} text, {CHAT_SETTING_CHAT_IMAGE} text, {CHAT_SETTING_READERS_VIEW} integer default 1, {CHAT_SETTING_MESSAGE_PERIOD} text)"
     SCHEMA_MEMBER = f"({MEMBER_ID} integer, {MEMBER_ACCOUNT_ID} text, {MEMBER_BAND_ID} integer, {MEMBER_CHAT_ID} text, {MEMBER_DATE} text, foreign key({MEMBER_ACCOUNT_ID}) references {TABLE_ACCOUNT}({ACCOUNT_ID}), foreign key({MEMBER_BAND_ID}, {MEMBER_ACCOUNT_ID}) references {TABLE_BAND}({BAND_ID}, {BAND_ACCOUNT_ID}), primary key({MEMBER_ID}, {MEMBER_ACCOUNT_ID}, {MEMBER_CHAT_ID}, {MEMBER_BAND_ID}))"
@@ -97,8 +102,17 @@ def connect():
     cursor.execute("PRAGMA foreign_keys=1")
 
     # 버전별 변경 사항 적용해줌 컬럼 -> 속성
-    # if getDatabaseVersion() == "0.1":
-    #     pass
+    if getDatabaseVersion() == "0.1":
+        cursor.execute("begin")
+        try:
+            cursor.execute(f"ALTER TABLE {TABLE_ACCOUNT} ADD COLUMN {ACCOUNT_IP} text")
+            cursor.execute(f"UPDATE schema_versions SET version = '0.2'")
+            con.commit()
+        except:
+            logging.exception("")
+            con.rollback()
+        
+        checkSchema(TABLE_ACCOUNT, SCHEMA_ACCOUNT, ACCOUNT_COLUMNS)
 
 def getDatabaseVersion():
     cursor.execute(f"select max(version) from schema_versions")
@@ -139,8 +153,8 @@ def getStringExtra(key, empty):
     else:
         return empty
 
-def addAccount(id, pw):
-    cursor.execute(f"INSERT INTO {TABLE_ACCOUNT} ({ACCOUNT_ID}, {ACCOUNT_PW}) SELECT '{id}','{pw}' WHERE NOT EXISTS ( SELECT *  FROM {TABLE_ACCOUNT} WHERE  {ACCOUNT_ID} =  '{id}')")
+def addAccount(id, pw, ip):
+    cursor.execute(f"INSERT INTO {TABLE_ACCOUNT} ({ACCOUNT_ID}, {ACCOUNT_PW}, {ACCOUNT_IP}) VALUES('{id}','{pw}','{ip}')")
     con.commit()
 
 def deleteAccount(id):
