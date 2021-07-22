@@ -6,16 +6,14 @@ from PyQt5 import uic
 from CreateChatMacro import CreateChatThread
 from DBHelper import *
 from LoginMacro import ValidateAccountThread
-from DriverProvider import setup_driver
 
 import logging
 import time
 import os
-from collections import deque 
 
 logger = logging.getLogger()
 FORMAT = "[%(asctime)s][%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
-logging.basicConfig(format=FORMAT, filename='./log/create_chat_macro.log')
+logging.basicConfig(format=FORMAT, filename=f'./log/{time.strftime("%Y-%m-%d")}.log')
 logger.setLevel(logging.INFO)
 
 form_class = uic.loadUiType(os.path.abspath("./ui/create_chat_macro_v2.ui"))[0]
@@ -215,7 +213,7 @@ class MyWindow(QMainWindow, form_class):
         self.account_table.resizeRowsToContents()
         self.account_table.resizeColumnsToContents()  # 이것만으로는 checkbox 컬럼은 잘 조절안됨.
 
-        logging.info("계정 로딩", f"{len(self.accounts)} 개가 로딩됨")
+        logging.info(f"계정 로딩 : {len(self.accounts)} 개가 로딩됨")
 
     def bindToAccountComboBox(self):
         self.account_combobox.clear()
@@ -353,7 +351,7 @@ class MyWindow(QMainWindow, form_class):
         self.chat_setting_table.resizeRowsToContents()
         self.chat_setting_table.resizeColumnsToContents()  # 이것만으로는 checkbox 컬럼은 잘 조절안됨.
 
-        logging.info("계정 로딩", f"{len(self.settings)} 개가 로딩됨")
+        logging.info(f"계정 로딩 : {len(self.settings)} 개가 로딩됨")
 
     def bindToChatSettingComboBox(self):
         self.setting_combobox.clear()

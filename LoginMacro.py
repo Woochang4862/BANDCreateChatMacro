@@ -16,7 +16,6 @@ from DriverProvider import *
 
 logger = logging.getLogger()
 FORMAT = "[%(asctime)s][%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
-logging.basicConfig(format=FORMAT, filename='./log/create_chat_macro.log')
 logger.setLevel(logging.DEBUG)
 
 LOGGED_IN = "LOGGED_IN"

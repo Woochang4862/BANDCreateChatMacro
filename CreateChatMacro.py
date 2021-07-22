@@ -13,8 +13,7 @@ from PyQt5.QtCore import *
 
 logger = logging.getLogger()
 FORMAT = "[%(asctime)s][%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
-logging.basicConfig(format=FORMAT, filename='./log/create_chat_macro.log')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 MAX_MEMBER_COUNT = 100
 WAIT_SECONDS = 10
