@@ -13,7 +13,7 @@ from PyQt5.QtCore import *
 
 logger = logging.getLogger()
 FORMAT = "[%(asctime)s][%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 MAX_MEMBER_COUNT = 100
 WAIT_SECONDS = 10
@@ -96,52 +96,54 @@ class CreateChatThread(QThread):
                         else:
                             updateBandCompleted(self.id, band[0], 1)
                     close()
-                    nextBand = True
-                    band = None
-                    while self.isRunning:
-                        if nextBand:
-                            nextBand = False
-                            band = self.getNextBand(self.driver) # band_id, account_id, name, url, completed
-                            if band is None:
-                                break
-                            if band[4] == 1:
+                    for band_id, account_id, title, url in self.getBandList(self.driver):
+                        connect()
+                        if not hasBand(account_id, band_id):
+                            addBand(band_id, account_id, title, url)
+                            band_id, account_id, name, url, completed, latest_keyword = getBand(band_id, account_id)
+                            leaders = self.getLeaders(self.driver, band_id)
+                            for leader in leaders:
+                                leader_id, account_id, band_id, chat_id, date = leader
+                                if not hasMember(account_id, leader_id):
+                                    logging.info(leader)
+                                    addMember(*leader)
+                        else:
+                            band_id, account_id, name, url, completed, latest_keyword = getBand(band_id, account_id)
+                            if completed == 1:
                                 continue
-
-                            connect()
-                            n_numbers = getNumberOfMembers(self.id, band[0])
-                            close()
-                            if n_numbers == 0:
-                                leaders = self.getLeaders(self.driver, band[0])
-                                for leader in leaders:
-                                    connect()
-                                    if not hasMember(self.id, leader[0]):
-                                        logging.info(leader)
-                                        addMember(*leader)
-                                    close()
-
-                        try:
-                            self.createChat(self.driver, band[0])
-                        except ChatRestrictionBandException:
-                            nextBand = True
-                        except PrivateChatRestrictionBandException:
-                            nextBand = True
-                        except MemberExceededException:
-                            self.driver.close()
-                            self.driver.quit()
-                            self.on_finished_create_chat.emit(self.id)
-                            return
-
-                        connect()
-                        if isCompleted(self.id, band[0]):
-                            nextBand = True
-                            self.pinBand(self.driver, band[2])
                         close()
+                        
+                        done = False
+                        while self.isRunning and not done:
+                            print(band_id)
+                            try:
+                                self.createChat(self.driver, band_id)
+                                connect()
+                                remainings = getRemainings(account_id, time.strftime("%Y-%m-%d"))
+                                close()
+                                self.on_update_progressbar.emit(remainings)
 
-                        connect()
-                        remainings = getRemainings(self.id, time.strftime("%Y-%m-%d"))
-                        close()
+                                connect()
+                                if isCompleted(account_id, band_id):
+                                    self.pinBand(self.driver, title)
+                                    done = False
+                                close()
 
-                        self.on_update_progressbar.emit(remainings)
+                                if remainings == 0:
+                                    self.driver.close()
+                                    self.driver.quit()
+                                    self.on_finished_create_chat.emit(account_id)
+                                    return
+                            except ChatRestrictionBandException:
+                                break
+                            except PrivateChatRestrictionBandException:
+                                break
+                            except MemberExceededException:
+                                self.driver.close()
+                                self.driver.quit()
+                                self.on_finished_create_chat.emit(account_id)
+                                return
+
                 self.driver.close()
                 self.driver.quit()
             self.on_finished_create_chat.emit(self.id)
@@ -160,7 +162,7 @@ class CreateChatThread(QThread):
             self.quit()
             self.driver.close()
             self.driver.quit()
-        except Exception as e:
+        except Exception:
             logging.exception("")
 
     def pinBand(self, driver, band_title):
@@ -234,6 +236,23 @@ class CreateChatThread(QThread):
         
         return result
 
+    def getBandList(self, driver):
+        wait = WebDriverWait(driver, WAIT_SECONDS)
+
+        driver.get("https://band.us/my/profiles")
+
+        result = []
+
+        bands = wait.until(
+            EC.presence_of_all_elements_located((By.XPATH, f'//*[@class="bandList _bands"]/li'))
+        )
+        for band in bands:
+            band_id = band.get_attribute('data-band-no')
+            title = band.text
+            result.append((band_id, self.id, title, f'https://band.us/band/{band_id}'))
+
+        return result
+
     def getNextBand(self, driver):
         wait = WebDriverWait(driver, WAIT_SECONDS)
 
@@ -291,7 +310,7 @@ class CreateChatThread(QThread):
                     if i==0:
                         continue
                     try:
-                        em_class = member.find_element_by_xpath(f'./div[1]/span[1]/em').get_attribute('class')
+                        em_class = member.find_element_by_xpath('./div[1]/span[1]/em').get_attribute('class')
                         if em_class == 'leader' or em_class == 'coleader':
                             leaders.append((member.get_attribute('data-user_no'), self.id, band_id, None, time.strftime("%Y-%m-%d")))
                     except:
@@ -299,7 +318,7 @@ class CreateChatThread(QThread):
                 logging.info(leaders)
                 done = True
             except Exception:
-                #페이지 무한 로딩 문제 발견
+                # TODO : 페이지 무한 로딩 문제 발견
                 err_cnt+=1
                 logger.exception(f"리더 선별시 문제발생 {err_cnt}")
                 if time.time() - start >= 10:
@@ -322,19 +341,22 @@ class CreateChatThread(QThread):
         if not onlyAction:
             driver.get(f"https://band.us/band/{band_id}") # 홍보할 밴드 링크
 
-        done=False
         err_cnt = 0
-        while not done:
+        while self.isRunning:
             try:
                 # 만들기 시작
                 new_chat_btn = wait.until(
-                    EC.element_to_be_clickable((By.XPATH, '//*[@data-viewname="DBandChattingChannelListView"]/div[1]/button'))
+                    EC.element_to_be_clickable((By.XPATH, '//*[@class="newChatWrap"]/button'))
                 )
                 new_chat_btn.click()
-                done = True
+                break
             except Exception:
+                if err_cnt == 10:
+                    logging.exception("새채팅 버튼 누를 수 없음")
+                    raise ChatRestrictionBandException()
                 err_cnt += 1
                 logger.exception(f"'새채팅'버튼 누를때 문제발생 {err_cnt}")
+                
         
         member_to_add = []
         connect()
@@ -377,7 +399,7 @@ class CreateChatThread(QThread):
                 )
                 search_btn.click()
 
-                time.sleep(1) # 검색 완료되는 때를 알아야 함, 우선 1초 기다림
+                time.sleep(1) # TODO : 검색 완료되는 때를 알아야 함, 우선 1초 기다림
 
                 isEmpty = False
                 try:
@@ -430,7 +452,7 @@ class CreateChatThread(QThread):
                     if (not overlap_on_db) and (not overlap_on_local):
                         if len(member_to_add) == MAX_MEMBER_COUNT or remainings==len(member_to_add):
                             break
-                        ActionChains(driver).move_to_element(driver.find_element_by_xpath(f'//*[@id="wrap"]/div[3]/div/section/div/div/div/div[3]/ul/li[{i}]/label/span[3]/span/input')).click().perform()
+                        ActionChains(driver).move_to_element(driver.find_element_by_xpath(f'//*[@data-viewname="DMemberSelectItemView" and position()={i}]/label/span[3]/span/input')).click().perform()
                         member_to_add.append(member)
 
                 if len(member_to_add) == MAX_MEMBER_COUNT or remainings==len(member_to_add): # 최대 멤버 수 or 초대 가능 인원 수 초과
@@ -445,14 +467,14 @@ class CreateChatThread(QThread):
             logging.info(f"남은 인원 수 : {remainings - len(member_to_add)}")
             
             # 초대하기 버튼 누르기
-            driver.find_element_by_xpath('//*[@id="wrap"]/div[3]/div/section/div/footer/button[2]').click()
+            driver.find_element_by_xpath('//*[data-uiselector="btnInvite"]').click()
         except:
             logging.exception("")
             raise
 
         try:
             open_chat = wait.until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="wrap"]/div[3]/div/section/div/div[3]/button[2]'))
+                EC.element_to_be_clickable((By.XPATH, '//*[@class="modalFooter"]/button[2]'))
             )
             open_chat.click()
         except UnexpectedAlertPresentException:
@@ -465,7 +487,7 @@ class CreateChatThread(QThread):
             updateBandCompleted(self.id, band_id, 1)
             close()
             return
-        except Exception: # 여기에서 마지막까지 갔을때 멈춤 #436 왜 실행 안됨?
+        except Exception: # TODO : 여기에서 마지막까지 갔을때 멈춤 #436 왜 실행 안됨?
             logging.exception("")
             raise
 
@@ -649,11 +671,13 @@ class CreateChatThread(QThread):
             except Exception:
                 err_cnt+=1
                 logger.exception(f"설정 닫기 문제 발생 {err_cnt}")
-    
-# driver = setup_driver("C:\Program Files\Google\Chrome\Application\chrome.exe")
-# result = loginWithEmail(driver, "hungsung0231@gmail.com", "hung080428")
+
+            
+
+# driver = setup_driver(None)
+# result = loginWithEmail(driver, "hungsung0234@gmail.com", "hung0804288")
 # if result == LOGIN_SUCCESS or result == LOGGED_IN:
 #     #applyChatOption(driver=driver, url='https://band.us/band/60518206/chat/CYlHvZ')
-#     pinBand(driver, "7시 물마시기/ 계단 3층 오르기")
+#     print(getBandList(driver))
         
 

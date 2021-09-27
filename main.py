@@ -1,4 +1,3 @@
-import sys
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -7,6 +6,7 @@ from CreateChatMacro import CreateChatThread
 from DBHelper import *
 from LoginMacro import ValidateAccountThread
 
+import sys
 import logging
 import time
 import os
@@ -183,7 +183,7 @@ class MyWindow(QMainWindow, form_class):
 
             for row in range(topRow, bottomRow+1):
                 id = self.account_table.item(row, 0).text()
-                pw = self.account_table.item(row, 1).text()
+                
                 connect()
                 deleteAccount(id)
                 close()
@@ -391,10 +391,6 @@ class MyWindow(QMainWindow, form_class):
             for (member_id, _, _, chat_id, date) in members:
                 member_node = QTreeWidgetItem(band_node)
                 member_node.setText(0,f"{member_id}({chat_id}/{date})")
-            
-                
-
-            
     """
     ::END::
     """
@@ -466,6 +462,7 @@ class MyWindow(QMainWindow, form_class):
             self.createChatThread.ip = ip
             self.createChatThread.chat_setting_id = self.settings[self.setting_combobox.currentIndex()-1][0]
             self.createChatThread.start()
+            self.start_time = time.time()
             self.current_id_label.setText(f"현재 아이디 : {id}")
             self.current_ip_label.setText(f"현재 아이피 : {ip}") #현재 아이피 주소 바꿈
         
@@ -499,6 +496,8 @@ class MyWindow(QMainWindow, form_class):
         self.progressBar.setValue((1000-remainings)//10)
 
     def on_finished_create_chat(self, id):
+        running_time = time.time() - self.start_time
+        logging.info(f"{id}를 끝내는데 걸린 시간 : {running_time}초")
         if self.i < len(self.accounts) and self.isRunning:
             id,pw,ip = self.accounts[self.i]
             self.i+=1
@@ -517,6 +516,7 @@ class MyWindow(QMainWindow, form_class):
             self.createChatThread.ip = ip
             self.createChatThread.chat_setting_id = self.settings[self.setting_combobox.currentIndex()-1][0]
             self.createChatThread.start()
+            self.start_time = time.time()
             self.current_id_label.setText(f"현재 아이디 : {id}")
             self.current_ip_label.setText(f"현재 아이피 : {ip}") #현재 아이피 주소 바꿈
         else:
@@ -532,6 +532,15 @@ class MyWindow(QMainWindow, form_class):
     """
     :::END::
     """
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+sys.excepthook = handle_exception
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

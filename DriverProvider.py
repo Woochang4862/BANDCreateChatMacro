@@ -77,12 +77,8 @@ def setup_driver(ip):
         co.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
         co.add_argument("app-version=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
         #co.debugger_address='127.0.0.1:9222'
-        if getattr(sys, 'frozen', False):   
-            chromedriver_path = os.path.join(sys._MEIPASS, "chromedriver.exe")  
-            driver = webdriver.Chrome(chromedriver_path, options=co)
-        else:
-            chromedriver_autoinstaller.install(cwd=True)
-            driver = webdriver.Chrome(f"./{getChromeVersion()[0:2]}/chromedriver.exe", options=co)
+        chromedriver_path = "C:/chromedriver.exe"
+        driver = webdriver.Chrome(chromedriver_path, options=co)
         return driver
     except:
         logging.exception("")

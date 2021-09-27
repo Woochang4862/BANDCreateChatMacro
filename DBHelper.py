@@ -158,7 +158,6 @@ def addAccount(id, pw, ip):
     con.commit()
 
 def deleteAccount(id):
-    #cursor.execute(f"DELETE FROM {TABLE_CHAT} WHERE {ACCOUNT_ID}='{id}'")
     cursor.execute(f"DELETE FROM {TABLE_MEMBER} WHERE {MEMBER_ACCOUNT_ID} = '{id}'")
     con.commit()
     cursor.execute(f"DELETE FROM {TABLE_BAND} WHERE {BAND_ACCOUNT_ID} = '{id}'")
@@ -192,7 +191,6 @@ def addChatSetting(name, chatName, chatImage, chatReadersView, chatMessagePeriod
     return cursor.lastrowid
 
 def deleteChatSetting(id):
-    #cursor.execute(f"DELETE FROM {TABLE_CHAT} WHERE {ACCOUNT_ID}='{id}'")
     cursor.execute(f"DELETE FROM {TABLE_CHAT_SETTING} WHERE {CHAT_SETTING_ID}='{id}'")
     con.commit()
 
@@ -260,5 +258,6 @@ connect()
 #addChatSetting('테스트 세팅', '테스트', r'C:\Users\wooch\OneDrive\바탕 화면\sample.jpg', 1 if True else 0, 'min')
 #print(getRemainings('chad0706@naver.com', '2021-06-29'))
 #addMember(74767098, 'hungsung0232@gmail.com', 72837984, 'CZmZ77', '2021-06-30')
-updateLatestKeyword('hungsung0231@gmail.com', 72038937, '강')
+# updateLatestKeyword('hungsung0231@gmail.com', 72038937, '강')
+#print(getBand(71757012, "hungsung0231@gmail.com"))
 close()
