@@ -89,10 +89,14 @@ def connect():
             logging.exception("")
             con.rollback()
 
-        checkSchema(TABLE_ACCOUNT, SCHEMA_ACCOUNT, ACCOUNT_COLUMNS)
-        checkSchema(TABLE_BAND, SCHEMA_BAND, BAND_COLUMNS)
-        checkSchema(TABLE_CHAT_SETTING, SCHEMA_CHAT_SETTING, CHAT_SETTING_COLUMNS)
-        checkSchema(TABLE_MEMBER, SCHEMA_MEMBER, MEMBER_COLUMNS)
+        try:
+            checkSchema(TABLE_ACCOUNT, SCHEMA_ACCOUNT, ACCOUNT_COLUMNS)
+            checkSchema(TABLE_BAND, SCHEMA_BAND, BAND_COLUMNS)
+            checkSchema(TABLE_CHAT_SETTING, SCHEMA_CHAT_SETTING, CHAT_SETTING_COLUMNS)
+            checkSchema(TABLE_MEMBER, SCHEMA_MEMBER, MEMBER_COLUMNS)
+        except: # 처음 프로그램 실행 시 아직 테이블이 없어 검사 진행 x
+            logging.exception("")
+            
 
     cursor.execute(CREATE_ACCOUNT)
     cursor.execute(CREATE_BAND)
