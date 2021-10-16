@@ -5,7 +5,7 @@ from selenium.common.exceptions import TimeoutException, NoAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-from DriverProvider import setup_driver
+from DriverProvider import ChromeDriverException, setup_driver
 from LoginMacro import LOGIN_IDENTIFICATION, loginWithEmail, LOGIN_ERROR, LOGIN_SUCCESS, LOGGED_IN
 from DBHelper import *
 
@@ -66,6 +66,10 @@ class NoMemberSelectedException(Exception):
     def __str__(self):
         return "멤버가 초대되지 않음"
 
+class InfinityLoadingException(Exception):
+    def __str__(self) -> str:
+        return "무한 로딩 에러"
+
 
 class CreateChatThread(QThread):
 
@@ -101,10 +105,8 @@ class CreateChatThread(QThread):
                             updateBandCompleted(self.id, band[0], 1)
                     close()
                     for band_id, account_id, title, url in self.getBandList(self.driver):
-                        print(band_id)
                         connect()
                         if not hasBand(account_id, band_id):
-                            print("밴드 맹긂")
                             addBand(band_id, account_id, title, url)
                             band_id, account_id, name, url, completed, latest_keyword = getBand(band_id, account_id)
                             leaders = self.getLeaders(self.driver, band_id)
@@ -115,7 +117,6 @@ class CreateChatThread(QThread):
                                     addMember(*leader)
                         else:
                             band_id, account_id, name, url, completed, latest_keyword = getBand(band_id, account_id)
-                            print("밴드 존재함", band_id, completed)
                             if completed == 1:
                                 continue
                         close()
@@ -131,7 +132,7 @@ class CreateChatThread(QThread):
 
                                 connect()
                                 if isCompleted(account_id, band_id):
-                                    self.pinBand(self.driver, title)
+                                    self.pinBand(self.driver, band_id, title)
                                     done = False
                                 close()
 
@@ -140,47 +141,48 @@ class CreateChatThread(QThread):
                                     self.driver.quit()
                                     self.on_finished_create_chat.emit(account_id)
                                     return
+                            except InfinityLoadingException:
+                                self.on_error_create_chat.emit(self.id, "검색하는 중 로딩이 완료되지 않아서 중지되었습니다")
+                                self.driver.close()
+                                self.driver.quit()
+                                return  
                             except ChatRestrictionBandException:
                                 connect()
                                 if isCompleted(account_id, band_id):
-                                    self.pinBand(self.driver, title)
-                                    done = True
+                                    self.pinBand(self.driver, band_id)
                                 close()
-                                break
+                                done = True
                             except PrivateChatRestrictionBandException:
                                 connect()
                                 if isCompleted(account_id, band_id):
-                                    self.pinBand(self.driver, title)
-                                    done = True
+                                    self.pinBand(self.driver, band_id)
                                 close()
-                                break
-                            except MemberExceededException:
-                                self.driver.close()
-                                self.driver.quit()
-                                self.on_finished_create_chat.emit(account_id)
-                                return
+                                done = True
                             except NoMemberSelectedException:
                                 connect()
                                 if isCompleted(account_id, band_id):
-                                    self.pinBand(self.driver, title)
-                                    done = True
-                                close()
-                                break
-                
+                                    self.pinBand(self.driver, band_id)
+                                close()  
+                                done = True   
+                            except MemberExceededException:
+                                self.on_error_create_chat.emit(account_id, "하루 한도 수 초과")
+                                self.driver.close()
+                                self.driver.quit()
+                                self.on_finished_create_chat.emit(account_id)
+                                return          
                 else: # 로그인 실패
                     self.on_error_create_chat.emit(self.id, "로그인 실패")
                 self.driver.close()
                 self.driver.quit()
+            else:
+                self.on_error_create_chat.emit(self.id, "하루 한도 수 초과")
             self.on_finished_create_chat.emit(self.id)
-        except UnexpectedAlertPresentException:
-            logging.exception("")
-            #self.on_error_create_chat.emit(self.id, "한도 수 초과")
-            self.on_finished_create_chat.emit(self.id)
-            self.driver.close()
-            self.driver.quit()
-        except Exception:
-            logging.exception("")
+        except ChromeDriverException:
+            logging.exception("CreateChatMacro.py")
             self.on_error_create_chat.emit(self.id, "크롬 드라이버를 얻어오는데 실패하였습니다.")
+        except: # 혹시나 에러 발생시 잡아내기 위해
+            logging.exception("")
+            self.stop()
 
     def stop(self):
         try:
@@ -188,10 +190,10 @@ class CreateChatThread(QThread):
             self.quit()
             self.driver.close()
             self.driver.quit()
-        except Exception:
-            logging.exception("")
+        except:
+            logging.exception("CreateChatMacro.py::stop")
 
-    def pinBand(self, driver, band_title):
+    def pinBand(self, driver, band_id):
         wait = WebDriverWait(driver, WAIT_SECONDS)
 
         driver.get("https://band.us")
@@ -209,16 +211,24 @@ class CreateChatThread(QThread):
         i = 1
         while self.isRunning:
             try:
-                title_band_to_pin = wait.until(
-                    EC.presence_of_element_located((By.XPATH, f'//*[@data-viewname="DUnpinnedBandListView"]/li[{i}]/span[@class="text"]/span'))
-                ).text.strip()
-                if title_band_to_pin == band_title:
-                    ActionChains(driver).move_to_element(driver.find_element_by_xpath(f'//*[@data-viewname="DUnpinnedBandListView"]/li[{i}]/span[@class="etc"]/button')).click().perform()
+                # 아이템 존재 여부 확인용
+                wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@data-viewname="DUnpinnedBandListView"]/li[{i}]/span[@class="text"]/span')))
+                ActionChains(driver).move_to_element(driver.find_element_by_xpath(f'//*[@data-viewname="DUnpinnedBandListView"]/li[{i}]/span[@class="etc"]/button')).click().perform()
+                pinned_band = wait.until(
+                    EC.presence_of_element_located((By.XPATH, f'//*[@data-viewname="DPinnedBandListView"]/li[last()]'))
+                )
+                _band_id = int(pinned_band.get_attribute('data-band_no'))
+                if _band_id == band_id:
                     done_btn = wait.until(
                         EC.element_to_be_clickable((By.XPATH, '//*[@class="footer"]/button[2]'))
                     )
                     done_btn.click()
                     return
+                else:
+                    cancel_btn = wait.until(
+                        EC.element_to_be_clickable((By.XPATH, '//*[@class="footer"]/button[1]'))
+                    )
+                    cancel_btn.click()
             except TimeoutException:
                 logging.exception("")
                 break
@@ -278,44 +288,6 @@ class CreateChatThread(QThread):
             result.append((band_id, self.id, title, f'https://band.us/band/{band_id}'))
 
         return result
-
-    def getNextBand(self, driver):
-        wait = WebDriverWait(driver, WAIT_SECONDS)
-
-        driver.get("https://band.us")
-
-        i = 1
-        while self.isRunning:
-            try:
-                item = wait.until(
-                    EC.element_to_be_clickable((By.XPATH, f'//*[@id="content"]/div/section/div[2]/div/div/ul/li[{i}]'))
-                )
-            except:
-                break
-            
-            if item.get_attribute('data-item-type') == 'band':
-                title = driver.find_element_by_xpath(f'//*[@id="content"]/div/section/div[2]/div/div/ul/li[{i}]/div/div/a/div[2]/p').text.strip()
-                item.click()
-                url = driver.current_url
-                band_id = url[21:]
-                connect()
-                t = not hasBand(self.id, band_id)
-                close()
-                if t:
-                    connect()
-                    addBand(band_id, self.id, title, url)
-                    result = getBand(band_id, self.id)
-                    close()
-                    return result
-                connect()
-                result = getBand(band_id, self.id)
-                close()
-                if result[4] == 0:
-                    return result
-                driver.get('https://band.us/')
-            i+=1
-
-        return None
 
     def getLeaders(self, driver, band_id):
         wait = WebDriverWait(driver, WAIT_SECONDS)
@@ -428,11 +400,17 @@ class CreateChatThread(QThread):
                 )
                 search_btn.click()
 
-                time.sleep(1) # TODO : 검색 완료되는 때를 알아야 함, 우선 1초 기다림
+                try:
+                    wait.until_not(
+                        EC.presence_of_element_located((By.XPATH, '//*[@data-viewname="DMemberSelectItemView"]/p[@class="uLoading"]'))
+                    )
+                except:
+                    logging.exception("")
+                    raise InfinityLoadingException()
 
                 isEmpty = False
                 try:
-                    driver.find_element_by_xpath(f'//*[@data-viewname="DMemberSelectView"]/div/div/div/div[4]/span')
+                    driver.find_element_by_xpath(f'//*[@class="uEmpty  columnFlexible"]/span')
                     isEmpty = True
                 except:
                     logging.exception("")
@@ -440,20 +418,11 @@ class CreateChatThread(QThread):
 
                 if isEmpty:
                     continue
-                try:
-                    check_btns = WebDriverWait(driver, 5).until(
-                        EC.presence_of_all_elements_located((By.XPATH, '//*[@data-viewname="DMemberSelectItemView"]'))
-                    )
-                except:
-                    logging.exception("")
-                    if len(member_to_add) == MAX_MEMBER_COUNT or remainings==len(member_to_add): # 최대 멤버 수 or 초대 가능 인원 수 초과
-                        break
-                    else:
-                        if keywords[-1] == keyword: #모든 체크 버튼을 돌았을 때(더이상 체크 버튼이 남아 있지 않음)
-                            connect()
-                            updateBandCompleted(self.id, band_id, 1)
-                            close()
-                        continue
+
+                check_btns = wait.until(
+                    EC.presence_of_all_elements_located((By.XPATH, '//*[@data-viewname="DMemberSelectItemView"]'))
+                )
+                
                 for i in range(1, len(check_btns)+1):
                     err_cnt = 0
                     while self.isRunning:

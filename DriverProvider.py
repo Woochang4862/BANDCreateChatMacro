@@ -1,4 +1,4 @@
-import time
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import subprocess
@@ -9,6 +9,10 @@ import zipfile
 logger = logging.getLogger()
 FORMAT = "[%(asctime)s][%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
 logger.setLevel(logging.DEBUG)
+
+class ChromeDriverException(Exception):
+    def __str__(self) -> str:
+        return "크롬 드라이버를 얻어오는 중 에러 발생"
 
 def open_chrome_with_debug_mode(path):
     logging.info(f"path : {path}")
@@ -63,6 +67,8 @@ def getChromeVersion(path=None):
 
 def setup_driver(ip):
     try:
+        if os.path.exists("demofile.txt"):
+            os.remove("demofile.txt")
         PROXY_HOST = ip  # rotating proxy or host
         PROXY_PORT = 3128 # port
         PROXY_USER = 'band-macro-proxy' # username
@@ -134,11 +140,6 @@ def setup_driver(ip):
         chromedriver_path = "C:/chromedriver.exe"
         driver = webdriver.Chrome(chromedriver_path, options=co)
         return driver
-    except:
-        logging.exception("")
-        raise Exception("크롬 드라이버를 얻어오는 중 에러 발생")
-
-driver = setup_driver('')
-driver.get("https://api.ipify.org/")
-time.sleep(5)
-driver.quit()
+    except Exception as e:
+        logging.exception("DriverProvider.py")
+        raise ChromeDriverException(e)
