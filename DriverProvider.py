@@ -3,13 +3,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import subprocess
 import platform
-<<<<<<< HEAD
-import requests
-import wget
-import zipfile
-import os
-=======
->>>>>>> 71a18fcaa4e09bd681f29072c2395cac3ecda19f
 import logging
 import zipfile
 
