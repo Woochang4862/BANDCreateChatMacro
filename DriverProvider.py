@@ -1,14 +1,17 @@
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import chromedriver_autoinstaller
 import subprocess
 import platform
+<<<<<<< HEAD
 import requests
 import wget
 import zipfile
 import os
+=======
+>>>>>>> 71a18fcaa4e09bd681f29072c2395cac3ecda19f
 import logging
+import zipfile
 
 logger = logging.getLogger()
 FORMAT = "[%(asctime)s][%(filename)s:%(lineno)3s - %(funcName)20s()] %(message)s"
@@ -42,102 +45,101 @@ def getChromeVersion(path=None):
             
             return output.decode('utf-8').strip().strip("Version=")
 
-def download_chrome_driver(chrome_version):
+# def download_chrome_driver(chrome_version):
     
-    # get the latest chrome driver version number
-    url = 'https://chromedriver.storage.googleapis.com/LATEST_RELEASE_'+chrome_version[0:2]
-    response = requests.get(url)
-    version_number = response.text
+#     # get the latest chrome driver version number
+#     url = 'https://chromedriver.storage.googleapis.com/LATEST_RELEASE_'+chrome_version[0:2]
+#     response = requests.get(url)
+#     version_number = response.text
 
-    # build the donwload url
-    download_url = "https://chromedriver.storage.googleapis.com/" + version_number +"/chromedriver_win32.zip"
+#     # build the donwload url
+#     download_url = "https://chromedriver.storage.googleapis.com/" + version_number +"/chromedriver_win32.zip"
 
-    print(download_url)
+#     print(download_url)
 
-    os.makedirs(f'./{chrome_version[0:2]}/')
+#     os.makedirs(f'./{chrome_version[0:2]}/')
 
-    # download the zip file using the url built above
-    latest_driver_zip = wget.download(download_url,f'./{chrome_version[0:2]}/chromedriver.zip')
+#     # download the zip file using the url built above
+#     latest_driver_zip = wget.download(download_url,f'./{chrome_version[0:2]}/chromedriver.zip')
 
-    # extract the zip file
-    with zipfile.ZipFile(latest_driver_zip, 'r') as zip_ref:
-        zip_ref.extractall() # you can specify the destination folder path here
-    # delete the zip file downloaded above
-    os.remove(latest_driver_zip)
+#     # extract the zip file
+#     with zipfile.ZipFile(latest_driver_zip, 'r') as zip_ref:
+#         zip_ref.extractall() # you can specify the destination folder path here
+#     # delete the zip file downloaded above
+#     os.remove(latest_driver_zip)
 
 def setup_driver(ip):
     try:
-        co = webdriver.ChromeOptions()
-        co.add_argument('--user-data-dir=C:/ChromeTEMP')
-        co.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
-        co.add_argument("app-version=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
-        
-        if ip:
-            PROXY_HOST = ip  # rotating proxy or host
-            PROXY_PORT = 3128 # port
-            PROXY_USER = 'band-macro-proxy' # username
-            PROXY_PASS = 'band-macro-proxy' # password
+        PROXY_HOST = ip  # rotating proxy or host
+        PROXY_PORT = 3128 # port
+        PROXY_USER = 'band-macro-proxy' # username
+        PROXY_PASS = 'band-macro-proxy' # password
 
-            manifest_json = """
-            {
-                "version": "1.0.0",
-                "manifest_version": 2,
-                "name": "Chrome Proxy",
-                "permissions": [
-                    "proxy",
-                    "tabs",
-                    "unlimitedStorage",
-                    "storage",
-                    "<all_urls>",
-                    "webRequest",
-                    "webRequestBlocking"
-                ],
-                "background": {
-                    "scripts": ["background.js"]
+
+        manifest_json = """
+        {
+            "version": "1.0.0",
+            "manifest_version": 2,
+            "name": "Chrome Proxy",
+            "permissions": [
+                "proxy",
+                "tabs",
+                "unlimitedStorage",
+                "storage",
+                "<all_urls>",
+                "webRequest",
+                "webRequestBlocking"
+            ],
+            "background": {
+                "scripts": ["background.js"]
+            },
+            "minimum_chrome_version":"22.0.0"
+        }
+        """
+
+        background_js = """
+        var config = {
+                mode: "fixed_servers",
+                rules: {
+                singleProxy: {
+                    scheme: "http",
+                    host: "%s",
+                    port: parseInt(%s)
                 },
-                "minimum_chrome_version":"22.0.0"
-            }
-            """
+                bypassList: ["localhost"]
+                }
+            };
 
-            background_js = """
-            var config = {
-                    mode: "fixed_servers",
-                    rules: {
-                    singleProxy: {
-                        scheme: "http",
-                        host: "%s",
-                        port: parseInt(%s)
-                    },
-                    bypassList: ["localhost"]
-                    }
-                };
+        chrome.proxy.settings.set({value: config, scope: "regular"}, function() {});
 
-            chrome.proxy.settings.set({value: config, scope: "regular"}, function() {});
+        function callbackFn(details) {
+            return {
+                authCredentials: {
+                    username: "%s",
+                    password: "%s"
+                }
+            };
+        }
 
-            function callbackFn(details) {
-                return {
-                    authCredentials: {
-                        username: "%s",
-                        password: "%s"
-                    }
-                };
-            }
-
-            chrome.webRequest.onAuthRequired.addListener(
-                        callbackFn,
-                        {urls: ["<all_urls>"]},
-                        ['blocking']
-            );
-            """ % (PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
-
+        chrome.webRequest.onAuthRequired.addListener(
+                    callbackFn,
+                    {urls: ["<all_urls>"]},
+                    ['blocking']
+        );
+        """ % (PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
+        co = Options()
+        if ip:
             pluginfile = 'proxy_auth_plugin.zip'
 
             with zipfile.ZipFile(pluginfile, 'w') as zp:
                 zp.writestr("manifest.json", manifest_json)
                 zp.writestr("background.js", background_js)
             co.add_extension(pluginfile)
-        
-        driver = webdriver.Chrome("C:/chromedriver.exe", chrome_options=co)
+        co.add_argument('--user-data-dir=C:/ChromeTEMP')
+        co.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
+        co.add_argument("app-version=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
+        chromedriver_path = "C:/chromedriver.exe"
+        driver = webdriver.Chrome(chromedriver_path, options=co)
         return driver
     except:
         logging.exception("")
