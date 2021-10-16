@@ -526,7 +526,10 @@ class MyWindow(QMainWindow, form_class):
     def on_error_create_chat(self, id, msg):
         logging.info(f"{id}에서 {msg}")
 
-        if msg == "한도 수 초과":
+        QMessageBox.critical(self.centralwidget, '오류', f"{id}에서 {msg}", QMessageBox.Ok, QMessageBox.Ok)
+        if msg == "로그인 실패":
+            pass
+        if msg == "크롬 드라이버를 얻어오는데 실패하였습니다.":
             self.on_stop_clicked()
             self.validateRunButton()
     """

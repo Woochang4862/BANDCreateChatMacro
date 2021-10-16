@@ -62,6 +62,10 @@ class PrivateChatRestrictionBandException(Exception):
     def __str__(self):
         return "비공개 채팅 제한 밴드!"
 
+class NoMemberSelectedException(Exception):
+    def __str__(self):
+        return "멤버가 초대되지 않음"
+
 
 class CreateChatThread(QThread):
 
@@ -97,8 +101,10 @@ class CreateChatThread(QThread):
                             updateBandCompleted(self.id, band[0], 1)
                     close()
                     for band_id, account_id, title, url in self.getBandList(self.driver):
+                        print(band_id)
                         connect()
                         if not hasBand(account_id, band_id):
+                            print("밴드 맹긂")
                             addBand(band_id, account_id, title, url)
                             band_id, account_id, name, url, completed, latest_keyword = getBand(band_id, account_id)
                             leaders = self.getLeaders(self.driver, band_id)
@@ -109,13 +115,13 @@ class CreateChatThread(QThread):
                                     addMember(*leader)
                         else:
                             band_id, account_id, name, url, completed, latest_keyword = getBand(band_id, account_id)
+                            print("밴드 존재함", band_id, completed)
                             if completed == 1:
                                 continue
                         close()
                         
                         done = False
                         while self.isRunning and not done:
-                            print(band_id)
                             try:
                                 self.createChat(self.driver, band_id)
                                 connect()
@@ -135,15 +141,34 @@ class CreateChatThread(QThread):
                                     self.on_finished_create_chat.emit(account_id)
                                     return
                             except ChatRestrictionBandException:
+                                connect()
+                                if isCompleted(account_id, band_id):
+                                    self.pinBand(self.driver, title)
+                                    done = True
+                                close()
                                 break
                             except PrivateChatRestrictionBandException:
+                                connect()
+                                if isCompleted(account_id, band_id):
+                                    self.pinBand(self.driver, title)
+                                    done = True
+                                close()
                                 break
                             except MemberExceededException:
                                 self.driver.close()
                                 self.driver.quit()
                                 self.on_finished_create_chat.emit(account_id)
                                 return
-
+                            except NoMemberSelectedException:
+                                connect()
+                                if isCompleted(account_id, band_id):
+                                    self.pinBand(self.driver, title)
+                                    done = True
+                                close()
+                                break
+                
+                else: # 로그인 실패
+                    self.on_error_create_chat.emit(self.id, "로그인 실패")
                 self.driver.close()
                 self.driver.quit()
             self.on_finished_create_chat.emit(self.id)
@@ -155,6 +180,7 @@ class CreateChatThread(QThread):
             self.driver.quit()
         except Exception:
             logging.exception("")
+            self.on_error_create_chat.emit(self.id, "크롬 드라이버를 얻어오는데 실패하였습니다.")
 
     def stop(self):
         try:
@@ -351,8 +377,11 @@ class CreateChatThread(QThread):
                 new_chat_btn.click()
                 break
             except Exception:
-                if err_cnt == 10:
+                if err_cnt == 6:
                     logging.exception("새채팅 버튼 누를 수 없음")
+                    connect()
+                    updateBandCompleted(self.id, band_id, 1)
+                    close() 
                     raise ChatRestrictionBandException()
                 err_cnt += 1
                 logger.exception(f"'새채팅'버튼 누를때 문제발생 {err_cnt}")
@@ -467,10 +496,16 @@ class CreateChatThread(QThread):
             logging.info(f"남은 인원 수 : {remainings - len(member_to_add)}")
             
             # 초대하기 버튼 누르기
-            driver.find_element_by_xpath('//*[data-uiselector="btnInvite"]').click()
+            if len(member_to_add)>0:
+                driver.find_element_by_xpath('//*[@data-uiselector="btnInvite"]').click()
+            else:
+                connect()
+                updateBandCompleted(self.id, band_id, 1)
+                close() 
+                raise NoMemberSelectedException()
         except:
             logging.exception("")
-            raise
+            raise 
 
         try:
             open_chat = wait.until(

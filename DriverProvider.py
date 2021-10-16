@@ -1,3 +1,4 @@
+import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import chromedriver_autoinstaller
@@ -7,7 +8,6 @@ import requests
 import wget
 import zipfile
 import os
-import sys
 import logging
 
 logger = logging.getLogger()
@@ -67,19 +67,83 @@ def download_chrome_driver(chrome_version):
 
 def setup_driver(ip):
     try:
-        #open_chrome_with_debug_mode(path)
-        co = Options()
-        if ip:
-            PORT = "3128"
-            PROXY = f"{ip}:{PORT}"
-            co.add_argument(f'--proxy-server=http://{PROXY}')
+        co = webdriver.ChromeOptions()
         co.add_argument('--user-data-dir=C:/ChromeTEMP')
         co.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
         co.add_argument("app-version=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.75 Safari/537.36")
-        #co.debugger_address='127.0.0.1:9222'
-        chromedriver_path = "C:/chromedriver.exe"
-        driver = webdriver.Chrome(chromedriver_path, options=co)
+        
+        if ip:
+            PROXY_HOST = ip  # rotating proxy or host
+            PROXY_PORT = 3128 # port
+            PROXY_USER = 'band-macro-proxy' # username
+            PROXY_PASS = 'band-macro-proxy' # password
+
+            manifest_json = """
+            {
+                "version": "1.0.0",
+                "manifest_version": 2,
+                "name": "Chrome Proxy",
+                "permissions": [
+                    "proxy",
+                    "tabs",
+                    "unlimitedStorage",
+                    "storage",
+                    "<all_urls>",
+                    "webRequest",
+                    "webRequestBlocking"
+                ],
+                "background": {
+                    "scripts": ["background.js"]
+                },
+                "minimum_chrome_version":"22.0.0"
+            }
+            """
+
+            background_js = """
+            var config = {
+                    mode: "fixed_servers",
+                    rules: {
+                    singleProxy: {
+                        scheme: "http",
+                        host: "%s",
+                        port: parseInt(%s)
+                    },
+                    bypassList: ["localhost"]
+                    }
+                };
+
+            chrome.proxy.settings.set({value: config, scope: "regular"}, function() {});
+
+            function callbackFn(details) {
+                return {
+                    authCredentials: {
+                        username: "%s",
+                        password: "%s"
+                    }
+                };
+            }
+
+            chrome.webRequest.onAuthRequired.addListener(
+                        callbackFn,
+                        {urls: ["<all_urls>"]},
+                        ['blocking']
+            );
+            """ % (PROXY_HOST, PROXY_PORT, PROXY_USER, PROXY_PASS)
+
+            pluginfile = 'proxy_auth_plugin.zip'
+
+            with zipfile.ZipFile(pluginfile, 'w') as zp:
+                zp.writestr("manifest.json", manifest_json)
+                zp.writestr("background.js", background_js)
+            co.add_extension(pluginfile)
+        
+        driver = webdriver.Chrome("C:/chromedriver.exe", chrome_options=co)
         return driver
     except:
         logging.exception("")
         raise Exception("크롬 드라이버를 얻어오는 중 에러 발생")
+
+driver = setup_driver('')
+driver.get("https://api.ipify.org/")
+time.sleep(5)
+driver.quit()
